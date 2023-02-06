@@ -1,0 +1,245 @@
+openapi: 3.0.3
+info:
+  title: REST API For Access To TURN Services
+  description: Describes a proposed standard REST API for obtaining
+    access to TURN services via ephemeral (i.e. time-limited)
+    credentials.  These credentials are vended by a web service over
+    HTTP, and then supplied to and checked by a TURN server using the
+    standard TURN protocol.
+  version: 0.0.1
+servers:
+  - url: /
+tags:
+  - name: TURN
+    description:  To retrieve a new set of credentials, the client makes a HTTP POST/GET
+      request, specifying TURN as the service to allocate credentials for,
+      and optionally specifying a user id parameter.
+    externalDocs:
+      url: https://datatracker.ietf.org/doc/html/draft-uberti-rtcweb-turn-rest-00
+  - name: ICE
+paths:
+  /:
+    get:
+      tags:
+        - TURN
+      summary: GET TURN credentials
+      description: GET request, specifying TURN as the service to allocate credentials for, and optionally specifying a user id parameter.
+      operationId: getTurnAuth
+      parameters:
+        - name: service
+          in: query
+          description: Specifies the desired service (turn)
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - turn
+            default: turn
+        - name: username
+          in: query
+          description:  An optional user id to be associated with the credentials
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: username
+        - name: key
+          in: query
+          description: If an API key is used for authentication, the API key
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: APIKEY
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/turnAuthenticationToken'
+        "400":
+          description: Invalid status value
+    post:
+      tags:
+        - TURN
+      summary: POST TURN credentials
+      description: Update an existing by Id
+      operationId: putTurnAuth
+      parameters:
+        - name: service
+          in: query
+          description: Status values that need to be considered for filter
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - turn
+            default: turn
+        - name: username
+          in: query
+          description: Status values that need to be considered for filter
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: username
+        - name: key
+          in: query
+          description: Status values that need to be considered for filter
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: APIKEY
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/turnAuthenticationToken'
+        "400":
+          description: Invalid status value
+  /ice:
+    get:
+      tags:
+        - ICE
+      summary: GET ICE credentials
+      description: GET request, specifying TURN as the service to allocate credentials for, and optionally specifying a user id parameter.
+      operationId: getIceAuth
+      parameters:
+        - name: service
+          in: query
+          description: Specifies the desired service (turn)
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - turn
+            default: turn
+        - name: username
+          in: query
+          description: An optional user id to be associated with the credentials
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: username
+        - name: key
+          in: query
+          description: If an API key is used for authentication, the API key
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: APIKEY
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/iceAuthenticationToken'
+        "400":
+          description: Invalid status value
+    post:
+      tags:
+        - ICE
+      summary: Update an existing 
+      description: Update an existing by Id
+      operationId: putIceAuth
+      parameters:
+        - name: service
+          in: query
+          description: Status values that need to be considered for filter
+          required: true
+          style: form
+          explode: true
+          schema:
+            type: string
+            enum:
+              - turn
+            default: turn
+        - name: username
+          in: query
+          description: Status values that need to be considered for filter
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: username
+        - name: key
+          in: query
+          description: Status values that need to be considered for filter
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+            default: APIKEY
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/iceAuthenticationToken'
+        "400":
+          description: Invalid status value
+components:
+  schemas:
+    turnAuthenticationToken:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        ttl:
+          type: integer
+          format: int64
+        uris:
+          type: array
+          items:
+            type: string
+      example:
+        username: 12334939:username
+        password: randomHashedPassword
+        ttt: 86400
+        uris:
+          - turn:1.2.3.4:9991?transport=udp
+          - turn:1.2.3.4:9992?transport=tcp
+          - turns:1.2.3.4:443?transport=tcp
+    iceAuthenticationToken:
+      type: object
+      properties:
+        username:
+          type: string
+        credential:
+          type: string
+        urls:
+          type: array
+          items:
+            type: string
+      description: asdasdasd
+      example:
+        username: 12334939:username
+        credential: randomHashedPassword
+        urls:
+          - turn:1.2.3.4:9991?transport=udp
+          - turn:1.2.3.4:9992?transport=tcp
+          - turns:1.2.3.4:443?transport=tcp

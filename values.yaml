@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authrest
+spec:
+  selector:
+    matchLabels:
+      app: authhandler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: authhandler
+    spec:
+      containers:
+      - name: authhandler
+        image: docker.io/library/authhandler6:latest
+        imagePullPolicy: Never
+       #  imagePullPolicy: Always
+        command: [ "/go/src/authhandler" ]
+        env:
+        - name: STUNNERD_CONFIG_PATH
+          value: "/etc/stunnerd/"
+        volumeMounts:
+        - name: stunnerd-config-volume
+          mountPath: /etc/stunnerd
+          readOnly: true
+      volumes:
+        - name: stunnerd-config-volume
+          configMap:
+            name: stunnerd-config
+            optional: true
+    # Uncomment this if you want to deploy a sidecar container with stunner to sniff traffic
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authrest
+  labels:
+    app: authhandler
+spec:
+  ports:
+    - port: 8080
+      # nodePort: 30478
+      name: authhandler-tcp
+  type: LoadBalancer
+  externalName: authrest.stunner.svc.cluster.local
+  selector:
+    app: authhandler
