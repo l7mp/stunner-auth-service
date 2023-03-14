@@ -2,20 +2,21 @@ package auth
 
 import (
 	"fmt"
-	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
-	"time"
+
+	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
+
+	"github.com/l7mp/stunner-auth-service/internal/config"
 )
 
 var ViperInstance *viper.Viper
-var Timeout = time.Hour //One hour in secondsTODO: Why is this hard coded
 
 func ReadConfigFromFile() {
 	log.SetLevel(log.DebugLevel)
-	pathToConfig := getPathFromEnv(os.Getenv, "STUNNERD_CONFIG_PATH")
+	pathToConfig := getPathFromEnv()
 	ViperInstance = viper.New()
 	ViperInstance.SetConfigName("stunnerd.conf")
 	ViperInstance.SetConfigType("json")
@@ -33,10 +34,14 @@ func ReadConfigFromFile() {
 	viper.DebugTo(log.StandardLogger().Out)
 }
 
-func getPathFromEnv(getEnv func(string) string, env_key string) string {
-	pathToConfig := getEnv(env_key)
+func getPathFromEnv() string {
+	pathToConfig := os.Getenv(config.ConfigPathEnvName)
+	if pathToConfig == "" {
+		pathToConfig = config.DefaultConfigPath
+	}
 	if len(pathToConfig) == 0 {
-		log.Panicf("env var %s not set", env_key)
+		// should never happen
+		log.Panicf("env var %s not set", config.ConfigPathEnvName)
 	}
 	return pathToConfig
 }

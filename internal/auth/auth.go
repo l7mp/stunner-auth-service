@@ -4,9 +4,12 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base64"
-	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
 	"strconv"
 	"time"
+
+	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
+
+	authconf "github.com/l7mp/stunner-auth-service/internal/config"
 )
 
 func CreateAuthenticationToken(username string) (InternalAuthToken, error) {
@@ -14,7 +17,7 @@ func CreateAuthenticationToken(username string) (InternalAuthToken, error) {
 
 	returnUsername, password := CreateAuthentiactionTokenFromConfig(username, config)
 	turnServers, _ := getTurnServers()
-	duration := Timeout //Still should be taken from the config
+	duration := authconf.DefaultTimeout
 
 	returnPassword := InternalAuthToken{Username: returnUsername,
 		Password: password,
@@ -26,7 +29,8 @@ func CreateAuthenticationToken(username string) (InternalAuthToken, error) {
 func CreateAuthentiactionTokenFromConfig(username string, config v1alpha1.AuthConfig) (string, string) {
 	var returnUsername string
 	var password string
-	duration := Timeout //Still should be taken from the config
+	duration := authconf.DefaultTimeout
+
 	if config.Type == "longterm" {
 		sharedSecret := config.Credentials["secret"]
 		returnUsername = createUsername(time.Now(), duration, username)

@@ -1,17 +1,21 @@
 package auth
 
 import (
-	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
-	"github.com/pion/logging"
-	"github.com/pion/turn/v2"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/pion/logging"
+	"github.com/pion/turn/v2"
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
+
+	authconf "github.com/l7mp/stunner-auth-service/internal/config"
 )
 
 func TestLongTermCredentials(t *testing.T) {
@@ -94,7 +98,7 @@ func Test_createUsername(t *testing.T) {
 }
 func Test_againstTurn(t *testing.T) {
 	secret := "asd"
-	username, password, err := turn.GenerateLongTermCredentials(secret, Timeout)
+	username, password, err := turn.GenerateLongTermCredentials(secret, authconf.DefaultTimeout)
 	result, err := longTermCredentials(username, secret)
 	log.Infof("%s, %s", password, result)
 	if err != nil {
