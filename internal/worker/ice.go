@@ -1,10 +1,11 @@
-package response_generation
+package worker
 
 import (
-	"authhandler/auth_generation"
-	swagger "authhandler/swagger_api_models"
 	"encoding/json"
 	"net/http"
+
+	"github.com/l7mp/stunner-auth-service/internal/auth"
+	"github.com/l7mp/stunner-auth-service/internal/model"
 )
 
 func HandleIceRequest(w http.ResponseWriter, r *http.Request) {
@@ -16,27 +17,29 @@ func HandleIceRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	internalAuthToken, err := auth_generation.CreateAuthenticationToken(username)
+	internalAuthToken, err := auth.CreateAuthenticationToken(username)
 	if err != nil {
 		http.Error(w, "Error during auth token creation", http.StatusInternalServerError)
 		return
 	}
 	authToken := convertInternalToIceAuthToken(internalAuthToken)
 
-	iceConfig := swagger.IceConfig{IceServers: []swagger.IceAuthenticationToken{authToken}, IceTransportPolicy: iceTransportPolicy}
+	iceConfig := model.IceConfig{
+		IceServers:         []model.IceAuthenticationToken{authToken},
+		IceTransportPolicy: iceTransportPolicy,
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	response, _ := json.Marshal(iceConfig)
-	_, err = w.Write(response)
-	if err != nil {
-		http.Error(w, "Error during response creation", http.StatusInternalServerError)
+	if err != json.NewEncoder(w).Encode(iceConfig) {
+		http.Error(w, "Error during auth token serialization", http.StatusInternalServerError)
 		return
 	}
+
+	return
 }
 
-func convertInternalToIceAuthToken(internalAuthToken auth_generation.InternalAuthToken) swagger.IceAuthenticationToken {
-	return swagger.IceAuthenticationToken{
+func convertInternalToIceAuthToken(internalAuthToken auth.InternalAuthToken) model.IceAuthenticationToken {
+	return model.IceAuthenticationToken{
 		Url:        internalAuthToken.Uris,
 		Username:   internalAuthToken.Username,
 		Credential: internalAuthToken.Password,

@@ -1,10 +1,11 @@
-package response_generation
+package worker
 
 import (
-	"authhandler/auth_generation"
-	swagger "authhandler/swagger_api_models"
 	"encoding/json"
 	"net/http"
+
+	"github.com/l7mp/stunner-auth-service/internal/auth"
+	"github.com/l7mp/stunner-auth-service/internal/model"
 )
 
 func HandleTurnRequest(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +16,7 @@ func HandleTurnRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	internalAuthToken, err := auth_generation.CreateAuthenticationToken(username)
+	internalAuthToken, err := auth.CreateAuthenticationToken(username)
 	if err != nil {
 		http.Error(w, "Error during auth token creation", http.StatusInternalServerError)
 		return
@@ -23,18 +24,19 @@ func HandleTurnRequest(w http.ResponseWriter, r *http.Request) {
 	returnAuthToken := convertInternalToTurnAuthToken(internalAuthToken)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	response, _ := json.Marshal(returnAuthToken)
-	_, err = w.Write(response)
-	if err != nil {
-		http.Error(w, "Error during response creation", http.StatusInternalServerError)
+	if err != json.NewEncoder(w).Encode(returnAuthToken) {
+		http.Error(w, "Error during auth token serialization", http.StatusInternalServerError)
 		return
 	}
+
+	return
 }
 
-func convertInternalToTurnAuthToken(internalAuthToken auth_generation.InternalAuthToken) swagger.TurnAuthenticationToken {
-	return swagger.TurnAuthenticationToken{Username: internalAuthToken.Username,
+func convertInternalToTurnAuthToken(internalAuthToken auth.InternalAuthToken) model.TurnAuthenticationToken {
+	return model.TurnAuthenticationToken{
+		Username: internalAuthToken.Username,
 		Password: internalAuthToken.Password,
 		Ttl:      internalAuthToken.Ttl,
-		Uris:     internalAuthToken.Uris}
+		Uris:     internalAuthToken.Uris,
+	}
 }

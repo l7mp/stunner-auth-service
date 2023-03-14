@@ -1,4 +1,4 @@
-package auth_generation
+package auth
 
 import (
 	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
@@ -78,10 +78,10 @@ func Test_createUsername(t *testing.T) {
 		args     args
 		username string
 	}{
-		{name: "Basic", args: args{username: "isti", startTime: time.UnixMilli(0), timeout: time.Duration(0)}, username: "isti:0"},
-		{name: "Add duration", args: args{username: "isti", startTime: time.UnixMicro(0), timeout: time.Duration(2000000000)}, username: "isti:2"},
-		{name: "Add longer duration", args: args{username: "isti", startTime: time.UnixMicro(0), timeout: time.Duration(8000000000000)}, username: "isti:8000"},
-		{name: "Different username", args: args{username: "almakorte", startTime: time.UnixMicro(0), timeout: time.Duration(2000000000)}, username: "almakorte:2"},
+		{name: "Basic", args: args{username: "isti", startTime: time.UnixMilli(0), timeout: time.Duration(0)}, username: "0:isti"},
+		{name: "Add duration", args: args{username: "isti", startTime: time.UnixMicro(0), timeout: time.Duration(2000000000)}, username: "2:isti"},
+		{name: "Add longer duration", args: args{username: "isti", startTime: time.UnixMicro(0), timeout: time.Duration(8000000000000)}, username: "8000:isti"},
+		{name: "Different username", args: args{username: "almakorte", startTime: time.UnixMicro(0), timeout: time.Duration(2000000000)}, username: "2:almakorte"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

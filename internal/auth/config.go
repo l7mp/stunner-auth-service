@@ -1,4 +1,4 @@
-package auth_generation
+package auth
 
 import (
 	"fmt"

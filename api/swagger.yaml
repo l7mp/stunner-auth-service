@@ -235,7 +235,6 @@ components:
           type: array
           items:
             type: string
-      description: asdasdasd
       example:
         username: 12334939:username
         credential: randomHashedPassword

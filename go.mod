@@ -1,4 +1,4 @@
-module authhandler
+module github.com/l7mp/stunner-auth-service
 
 go 1.18
 

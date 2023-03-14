@@ -1,6 +1,6 @@
-package auth_generation
+package auth
 
-// asdasdasd
+// InternalAuthToken represents a TURN authentication token provided to clients.
 type InternalAuthToken struct {
 	Username string
 	Password string
