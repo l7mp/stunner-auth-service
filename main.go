@@ -7,17 +7,50 @@
 package main
 
 import (
+	"context"
+	flag "github.com/spf13/pflag"
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/l7mp/stunner-auth-service/internal/auth"
-	swagger "github.com/l7mp/stunner-auth-service/internal/handler"
+	"github.com/l7mp/stunner-auth-service/internal/config"
+	"github.com/l7mp/stunner-auth-service/internal/handler"
+	"github.com/l7mp/stunner-auth-service/pkg/server"
 )
 
 func main() {
-	log.Printf("Server started")
-	auth.ReadConfigFromFile()
-	router := swagger.NewRouter()
+	os.Args[0] = "auth-server"
+	defaultConf := config.DefaultConfigPath
+	if os.Getenv(config.ConfigPathEnvName) != "" {
+		defaultConf = os.Getenv(config.ConfigPathEnvName)
+	}
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", router))
+	var conf = flag.StringP("config", "c", defaultConf, "Config file.")
+	var level = flag.StringP("log", "l", "", "Log level (default: all:INFO).")
+	var watch = flag.BoolP("watch", "w", false, "Watch config file for updates (default: false).")
+	var verbose = flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>.")
+	flag.Parse()
+
+	logLevel := "all:WARN"
+	if *verbose {
+		// verbose mode on, override any loglevel
+		logLevel = "all:DEBUG"
+	}
+	if *level != "" {
+		// loglevel set on the comman line, use that one instead
+		logLevel = *level
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	handler, err := handler.NewHandler(ctx, *conf, logLevel, watch == nil)
+	if err != nil {
+		log.Fatalf("Could not start authentication server: %s", err)
+	}
+
+	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
+
+	handler.Log.Infof("Starting server")
+	log.Fatal(http.ListenAndServe("0.0.0.0:8088", router))
 }
