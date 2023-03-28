@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: authrest
+  name: stunner-auth
 spec:
   selector:
     matchLabels:
-      app: authhandler
+      app: stunner-auth
   replicas: 1
   template:
     metadata:
       labels:
-        app: authhandler
+        app: stunner-auth
     spec:
       containers:
-      - name: authhandler
+      - name: stunner-auth-server
         image: docker.io/library/authhandler6:latest
-        imagePullPolicy: Never
+        # imagePullPolicy: Never
        #  imagePullPolicy: Always
         command: [ "/go/src/authhandler" ]
         env:
@@ -30,21 +30,18 @@ spec:
           configMap:
             name: stunnerd-config
             optional: true
-    # Uncomment this if you want to deploy a sidecar container with stunner to sniff traffic
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: authrest
+  name: stunner-auth
   labels:
-    app: authhandler
+    app: stunner-auth
 spec:
+  selector:
+    app: stunner-auth
   ports:
     - port: 8080
-      # nodePort: 30478
       name: authhandler-tcp
-  type: LoadBalancer
-  externalName: authrest.stunner.svc.cluster.local
-  selector:
-    app: authhandler
+  type: ClusterIP
