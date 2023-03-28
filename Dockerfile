@@ -13,15 +13,15 @@ COPY internal/ internal/
 COPY api/ api/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o stunner-auth-service .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o stunner-auth-server .
 
 ###########
 # STUNNER-AUTH-SERVICE
 FROM gcr.io/distroless/static
 
 WORKDIR /
-COPY --from=builder /app/stunner-auth-service .
+COPY --from=builder /app/stunner-auth-server .
 
 EXPOSE 8080/tcp
 
-CMD ["/stunner-auth-service"]
+CMD ["/stunner-auth-server"]
