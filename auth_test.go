@@ -129,13 +129,13 @@ func TestPlaintextAuth(t *testing.T) {
 	assert.NoError(t, err, "create handler")
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
-	httpServer := &http.Server{Addr: ":8088", Handler: router}
+	httpServer := &http.Server{Addr: ":18088", Handler: router}
 	defer httpServer.Close()
 
 	go func() { _ = httpServer.ListenAndServe() }()
 
 	log.Debug("starting auth client")
-	authClient, err := client.NewClient("http://:8088")
+	authClient, err := client.NewClient("http://:18088")
 	assert.NoError(t, err, "new client")
 
 	// starting a Stunner instance to use its authenticator
@@ -451,13 +451,13 @@ func TestLongtermAuth(t *testing.T) {
 	assert.NoError(t, err, "create handler")
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
-	httpServer := &http.Server{Addr: ":8088", Handler: router}
+	httpServer := &http.Server{Addr: ":18088", Handler: router}
 	defer httpServer.Close()
 
 	go func() { _ = httpServer.ListenAndServe() }()
 
 	log.Debug("starting auth client")
-	authClient, err := client.NewClient("http://:8088")
+	authClient, err := client.NewClient("http://:18088")
 	assert.NoError(t, err, "new client")
 
 	// starting a Stunner instance to use its authenticator
@@ -718,13 +718,13 @@ func TestWatcher(t *testing.T) {
 	assert.NoError(t, err, "create handler")
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
-	httpServer := &http.Server{Addr: ":8088", Handler: router}
+	httpServer := &http.Server{Addr: ":18088", Handler: router}
 	defer httpServer.Close()
 
 	go func() { _ = httpServer.ListenAndServe() }()
 
 	log.Debug("starting auth client")
-	authClient, err := client.NewClient("http://:8088")
+	authClient, err := client.NewClient("http://:18088")
 	assert.NoError(t, err, "new client")
 
 	// starting a Stunner instance to use its authenticator
