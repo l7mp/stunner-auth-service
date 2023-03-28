@@ -148,6 +148,9 @@ func TestPlaintextAuth(t *testing.T) {
 	assert.NoError(t, s.Reconcile(basicAuthTestConfig), "starting server")
 	authHandler := s.NewAuthHandler()
 
+	// wait so that the auth-server has comfortable time to start
+	time.Sleep(time.Duration(50) * time.Millisecond)
+
 	log.Debug("testing basic TURN auth")
 	param := client.GetTurnAuthParams{}
 	turnAuth, err := authClient.GetTurnAuthToken(ctx, &param)
@@ -470,6 +473,9 @@ func TestLongtermAuth(t *testing.T) {
 	assert.NoError(t, s.Reconcile(longtermAuthTestConfig), "starting server")
 	authHandler := s.NewAuthHandler()
 
+	// wait so that the auth-server has comfortable time to start
+	time.Sleep(time.Duration(50) * time.Millisecond)
+
 	log.Debug("testing basic TURN auth")
 	param := client.GetTurnAuthParams{}
 	turnAuth, err := authClient.GetTurnAuthToken(ctx, &param)
@@ -736,6 +742,9 @@ func TestWatcher(t *testing.T) {
 	defer s.Close()
 	assert.NoError(t, s.Reconcile(watchTestConfig), "reconcile")
 	authHandler := s.NewAuthHandler()
+
+	// wait so that the auth-server has comfortable time to start
+	time.Sleep(time.Duration(50) * time.Millisecond)
 
 	log.Debug("--------------------------------------")
 	log.Debug("testing initial TURN auth with username and service set")
