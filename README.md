@@ -32,6 +32,103 @@ service is by the WebRTC application server to generate an [ICE server
 configuration](https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer) to be returned to
 clients to enable them to connect via STUNner as the TURN server.
 
+## Usage
+
+Most users will have the Stunner authentication REST API server automatically deployed into their
+cluster by the Stunner [Helm charts](https://github.com/l7mp/stunner-helm). You can reach the REST
+API server like you reach any other HTTP service in Kubernetes.
+
+The simplest way to experiment with the REST API server locally is to start it on the localhost,
+bootstrap it with a valid Stunner configuration, and send queries to it using curl. We provide a
+sample Stunner config for this purpose named `stunnerd-test.yaml`.
+
+The below will start the authentication server locally in verbose mode (`--verbose`) using the
+Stunner config file `stunnerd-test.yaml` (`--config stunnerd-test.yaml`) on port 8087 (`--port
+8087`), also enabling watch-mode (`--watch`):
+
+``` console
+go run main.go --verbose --config stunnerd-test.yaml --watch
+```
+
+The below will query the REST API for a TURN authentication token, setting the username to
+`my-user` and the expiration time of the returned TURN credentials to 1 hour from the present
+(`ttl` is set to 3600 sec).
+
+``` console
+curl -s http://localhost:8087?service=turn\&username=my-user\&ttl=3600| jq .
+{
+  "username": "1680036887:my-user"
+  "password": "P8pCmIfe8faGAcbsxevYv35l0j4=",
+  "ttl": 3600,
+  "uris": [
+    "turn:1.2.3.4:3478?transport=udp",
+    "turn:1.2.3.4:3478?transport=tcp",
+    "turns:127.0.0.1:3479?transport=tcp",
+    "turns:127.0.0.1:3479?transport=udp"
+  ],
+}
+```
+
+Note that `service=turn` is mandatory, the rest of the parameters are optional; see the [*REST API
+For Access To TURN
+Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-00) IETF draft
+specification to understand the fields of the returned JSON. Note also that `jq` is used above only
+to pretty-print the response JSON, feel free to remove it.
+
+Suppose now that the public IP address of the UDP and the TCP TURN listeners (the first two URIs
+above) changes from `1.2.3.4` to `5.6.7.8`. This is reconciled by the [stunner gateway
+operator](https://github.com/l7mp/stunner-gateway-operator) rendering a new running config for
+Stunner, which in the below we simulate locally by exchanging the IP addresses in the local Stunner
+config file as follows:
+
+```console
+sed -i 's/1\.2\.3\.4/5.6.7.8/g' stunnerd-test.yaml 
+```
+
+The REST API server watches this configuration file so it will immediately pick up the new IP
+addresses. This can be seen by asking for another TURN auth token from the auth server:
+
+```console
+curl -s http://localhost:8087?service=turn\&username=my-user\&ttl=3600| jq .
+{
+  "password": "PE7kz+9BJIxe98eST0IE2yo66nI=",
+  "ttl": 3600,
+  "uris": [
+    "turn:5.6.7.8:3478?transport=udp",
+    "turn:5.6.7.8:3478?transport=tcp",
+    "turns:127.0.0.1:3479?transport=tcp",
+    "turns:127.0.0.1:3479?transport=udp"
+  ],
+  "username": "1680037254:my-user"
+}
+```
+
+Observe that the new IP addresses in the first to URIs. 
+
+In addition to TURN authentication tokens, the REST API server can also generate full [ICE
+configurations](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#parameters). These
+should be sent from the application to the clients, so that clients can use the correct ICE config
+to connect via STUNner as the TURN server. Use the `/ice` API endpoint to generate an ICE config:
+
+``` console
+curl -s http://localhost:8087/ice?service=turn\&username=my-user\&ttl=3600| jq .
+{
+  "iceServers": [
+    {
+      "credential": "Ad5JZbsKve06gZj+6kH9EeJYTJA=",
+      "urls": [
+        "turn:5.6.7.8:3478?transport=udp",
+        "turn:5.6.7.8:3478?transport=tcp",
+        "turns:127.0.0.1:3479?transport=tcp",
+        "turns:127.0.0.1:3479?transport=udp"
+      ],
+      "username": "1680037776:my-user"
+    }
+  ],
+  "iceTransportPolicy": "all"
+}
+```
+
 ## API
 
 The REST API exposes two API endpoints: `getTurnAuth` can be called to obtain a TURN authentication
@@ -108,8 +205,8 @@ spec:
 ```
 
 Furthermore, suppose that public IP for the LoadBalancer service that exposes this gateway is
-`1.2.3.4` and assume the following request to the `getTurnAuth` API: `GET
-/?service=turn&username=mbzrxpgjys`. Then, the returned TURN credential will be as follows
+`1.2.3.4` and assume the following request to the `getTurnAuth` API:
+`GET/?service=turn&username=mbzrxpgjys`. Then, the returned TURN credential will be as follows:
 
 ```js
 {

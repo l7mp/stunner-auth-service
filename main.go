@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	flag "github.com/spf13/pflag"
 	"log"
 	"net/http"
@@ -29,6 +30,7 @@ func main() {
 	var level = flag.StringP("log", "l", "", "Log level (default: all:INFO).")
 	var watch = flag.BoolP("watch", "w", false, "Watch config file for updates (default: false).")
 	var verbose = flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>.")
+	var port = flag.IntP("port", "p", 8088, "HTTP port (defualt: 8088).")
 	flag.Parse()
 
 	logLevel := "all:WARN"
@@ -44,7 +46,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	handler, err := handler.NewHandler(ctx, *conf, logLevel, watch == nil)
+	handler, err := handler.NewHandler(ctx, *conf, logLevel, *watch)
 	if err != nil {
 		log.Fatalf("Could not start authentication server: %s", err)
 	}
@@ -52,5 +54,5 @@ func main() {
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
 
 	handler.Log.Infof("Starting server")
-	log.Fatal(http.ListenAndServe("0.0.0.0:8088", router))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", *port), router))
 }
