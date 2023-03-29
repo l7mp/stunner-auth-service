@@ -30,7 +30,7 @@ func main() {
 	var level = flag.StringP("log", "l", "", "Log level (default: all:INFO).")
 	var watch = flag.BoolP("watch", "w", false, "Watch config file for updates (default: false).")
 	var verbose = flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>.")
-	var port = flag.IntP("port", "p", 8088, "HTTP port (defualt: 8088).")
+	var port = flag.IntP("port", "p", 8080, "HTTP port (defualt: 8080).")
 	flag.Parse()
 
 	logLevel := "all:WARN"
