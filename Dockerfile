@@ -8,7 +8,7 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
-COPY *.go ./
+COPY main.go ./
 COPY internal/ internal/
 COPY api/ api/
 COPY pkg/ pkg/
