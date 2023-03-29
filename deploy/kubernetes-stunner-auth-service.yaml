@@ -15,10 +15,10 @@ spec:
     spec:
       containers:
       - name: stunner-auth-server
-        # image: l7mp/stunner-auth-service
-        # imagePullPolicy: IfNotPresent
-        image: localhost/l7mp/stunner-auth-service
-        imagePullPolicy: Never
+        image: l7mp/stunner-auth-server
+        imagePullPolicy: IfNotPresent
+        # image: localhost/l7mp/stunner-auth-server
+        # imagePullPolicy: Never
         command: [ "/stunner-auth-server" ]
         args: ["--verbose","--watch"]
         env:
