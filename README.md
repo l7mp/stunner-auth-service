@@ -38,15 +38,17 @@ Most users will have the Stunner authentication REST API server automatically de
 cluster by the Stunner [Helm charts](https://github.com/l7mp/stunner-helm). You can reach the REST
 API server like you reach any other HTTP service in Kubernetes.
 
-The simplest way to experiment with the REST API server locally is to start it on the localhost,
+The simplest way to experiment with the REST API server is to build and run the server locally,
 bootstrap it with a valid Stunner configuration, and send queries to it using curl. We provide a
 sample Stunner config for this purpose named `stunnerd-test.yaml`.
 
-The below will start the authentication server locally in verbose mode (`--verbose`) using the
-Stunner config file `stunnerd-test.yaml` (`--config stunnerd-test.yaml`) on port 8087 (`--port
-8087`), also enabling watch-mode (`--watch`):
+The below will re-generate the client-side and server-side HTTP request handlers from the OpenAPI
+spec available at `api/stunner.yaml` and start a new REST API server locally on port 8087 (`--port
+8087`), in verbose mode (`--verbose`), using the Stunner config file `stunnerd-test.yaml` (`--config
+stunnerd-test.yaml`), and also enabling watch-mode (`--watch`):
 
 ``` console
+make generate
 go run main.go --verbose --config stunnerd-test.yaml --watch
 ```
 
