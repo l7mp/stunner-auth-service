@@ -13,7 +13,12 @@ COPY internal/ internal/
 COPY api/ api/
 COPY pkg/ pkg/
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o stunner-auth-server .
+RUN apkArch="$(apk --print-arch)"; \
+      case "$apkArch" in \
+        aarch64) export GOARCH='arm64' ;; \
+        *) export GOARCH='amd64' ;; \
+      esac; \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o stunner-auth-server .
 
 ###########
 # STUNNER-AUTH-SERVICE
