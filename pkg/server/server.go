@@ -78,6 +78,30 @@ func (siw *ServerInterfaceWrapper) GetTurnAuth(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "gateway" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "gateway", r.URL.Query(), &params.Gateway)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gateway", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "listener" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "listener", r.URL.Query(), &params.Listener)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listener", Err: err})
+		return
+	}
+
 	var handler = func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTurnAuth(w, r, params)
 	}
@@ -135,6 +159,30 @@ func (siw *ServerInterfaceWrapper) GetIceAuth(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameter("form", true, false, "key", r.URL.Query(), &params.Key)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "key", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "namespace" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "namespace", r.URL.Query(), &params.Namespace)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "gateway" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "gateway", r.URL.Query(), &params.Gateway)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "gateway", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "listener" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "listener", r.URL.Query(), &params.Listener)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listener", Err: err})
 		return
 	}
 

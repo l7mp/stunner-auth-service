@@ -54,6 +54,29 @@ paths:
           required: false
           schema:
             type: string
+        - name: namespace
+          in: query
+          description: |
+            Generate TURN URIs only for the Gateways in the given namespace (optional)
+          required: false
+          schema:
+            type: string
+        - name: gateway
+          in: query
+          description: |
+            Generate TURN URIs only for the specified Gateway (optional); if gateway is set then
+            namespace must be set as well
+          required: false
+          schema:
+            type: string
+        - name: listener
+          in: query
+          description: |
+            Generate TURN URIs only for the specified listener of a given Gateway (optional); if
+            listener is set then namespace and gateway must be set as well
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Successful operation
@@ -102,6 +125,29 @@ paths:
         - name: key
           in: query
           description: If an API key is used for authentication, the API key
+          required: false
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          description: |
+            Generate TURN URIs only for the Gateways in the given namespace (optional)
+          required: false
+          schema:
+            type: string
+        - name: gateway
+          in: query
+          description: |
+            Generate TURN URIs only for the specified Gateway (optional); if gateway is set then
+            namespace must be set as well
+          required: false
+          schema:
+            type: string
+        - name: listener
+          in: query
+          description: |
+            Generate TURN URIs only for the specified listener of a given Gateway (optional); if
+            listener is set then namespace and gateway must be set as well
           required: false
           schema:
             type: string

@@ -16,6 +16,16 @@ type Client struct {
 	client.ClientWithResponses
 }
 
+type TurnError struct {
+	error
+	Response *GetTurnAuthResponse
+}
+
+type IceError struct {
+	error
+	Response *GetIceAuthResponse
+}
+
 // NewClient creates a new stunner TURN authentication client.
 func NewClient(server string, opts ...ClientOption) (*Client, error) {
 	c, err := client.NewClientWithResponses(server)
@@ -42,8 +52,12 @@ func (c *Client) GetTurnAuthToken(ctx context.Context, params *GetTurnAuthParams
 	}
 
 	if r.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("GetIceConfig: HTTP error: status=%d, message=%q, body=%q",
-			r.StatusCode(), r.Status(), string(r.Body))
+		err := TurnError{
+			error: fmt.Errorf("GetTurnAuthToken: HTTP error: status=%d, message=%q, body=%q",
+				r.StatusCode(), r.Status(), string(r.Body)),
+			Response: r,
+		}
+		return nil, &err
 	}
 
 	return r.JSON200, nil
@@ -67,8 +81,12 @@ func (c *Client) GetIceConfig(ctx context.Context, params *GetIceAuthParams) (*I
 	}
 
 	if r.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("GetIceConfig: HTTP error: status=%d, message=%q, body=%q",
-			r.StatusCode(), r.Status(), string(r.Body))
+		err := IceError{
+			error: fmt.Errorf("GetIceConfig: HTTP error: status=%d, message=%q, body=%q",
+				r.StatusCode(), r.Status(), string(r.Body)),
+			Response: r,
+		}
+		return nil, &err
 	}
 
 	return r.JSON200, nil

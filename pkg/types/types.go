@@ -57,6 +57,17 @@ type GetTurnAuthParams struct {
 
 	// Key If an API key is used for authentication, the API key
 	Key *string `form:"key,omitempty" json:"key,omitempty"`
+
+	// Namespace Generate TURN URIs only for the Gateways in the given namespace (optional)
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// Gateway Generate TURN URIs only for the specified Gateway (optional); if gateway is set then
+	// namespace must be set as well
+	Gateway *string `form:"gateway,omitempty" json:"gateway,omitempty"`
+
+	// Listener Generate TURN URIs only for the specified listener of a given Gateway (optional); if
+	// listener is set then namespace and gateway must be set as well
+	Listener *string `form:"listener,omitempty" json:"listener,omitempty"`
 }
 
 // GetTurnAuthParamsService defines parameters for GetTurnAuth.
@@ -78,6 +89,17 @@ type GetIceAuthParams struct {
 
 	// Key If an API key is used for authentication, the API key
 	Key *string `form:"key,omitempty" json:"key,omitempty"`
+
+	// Namespace Generate TURN URIs only for the Gateways in the given namespace (optional)
+	Namespace *string `form:"namespace,omitempty" json:"namespace,omitempty"`
+
+	// Gateway Generate TURN URIs only for the specified Gateway (optional); if gateway is set then
+	// namespace must be set as well
+	Gateway *string `form:"gateway,omitempty" json:"gateway,omitempty"`
+
+	// Listener Generate TURN URIs only for the specified listener of a given Gateway (optional); if
+	// listener is set then namespace and gateway must be set as well
+	Listener *string `form:"listener,omitempty" json:"listener,omitempty"`
 }
 
 // GetIceAuthParamsService defines parameters for GetIceAuth.

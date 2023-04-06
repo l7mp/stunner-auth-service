@@ -13,3 +13,6 @@ type GetTurnAuthParamsService = types.GetTurnAuthParamsService
 
 type TurnAuthenticationToken = types.TurnAuthenticationToken
 type IceConfig = types.IceConfig
+
+type GetTurnAuthResponse = client.GetTurnAuthResponse
+type GetIceAuthResponse = client.GetIceAuthResponse
