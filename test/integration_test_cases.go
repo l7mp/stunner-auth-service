@@ -586,12 +586,12 @@ var _ = Describe("Integration test:", func() {
 			param := client.GetIceAuthParams{}
 			Eventually(func() bool {
 				iceConfig, err = clnt.GetIceConfig(context.TODO(), &param)
-				if iceConfig == nil || err != nil {
+				if iceConfig == nil || err != nil || iceConfig.IceServers == nil {
 					return false
 				}
 				iceServers := *iceConfig.IceServers
 
-				return iceServers != nil && len(iceServers) == 1 &&
+				return len(iceServers) == 1 &&
 					iceServers[0].Username != nil && *iceServers[0].Username == "user2"
 			}, timeout, interval).Should(BeTrue())
 
@@ -664,12 +664,12 @@ var _ = Describe("Integration test:", func() {
 			param := client.GetIceAuthParams{}
 			Eventually(func() bool {
 				iceConfig, err = clnt.GetIceConfig(context.TODO(), &param)
-				if iceConfig == nil || err != nil {
+				if iceConfig == nil || err != nil || iceConfig.IceServers == nil {
 					return false
 				}
 				iceServers := *iceConfig.IceServers
 
-				return iceServers != nil && len(iceServers) == 1 &&
+				return len(iceServers) == 1 &&
 					iceServers[0].Username != nil && *iceServers[0].Username == "user3"
 			}, timeout, interval).Should(BeTrue())
 

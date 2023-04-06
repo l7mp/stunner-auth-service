@@ -11,8 +11,6 @@ import (
 
 	"github.com/l7mp/stunner"
 	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
-
-	"github.com/l7mp/stunner-auth-service/pkg/types"
 )
 
 const (
@@ -27,13 +25,9 @@ const (
 )
 
 var (
-	testUsername           = "dummy"
-	testTtl            int = 1
-	svc                    = types.GetIceAuthParamsServiceTurn
-	dummySvc               = types.GetIceAuthParamsService("dummy")
-	certPem, keyPem, _     = stunner.GenerateSelfSignedKey()
-	certPem64              = base64.StdEncoding.EncodeToString(certPem)
-	keyPem64               = base64.StdEncoding.EncodeToString(keyPem)
+	certPem, keyPem, _ = stunner.GenerateSelfSignedKey()
+	certPem64          = base64.StdEncoding.EncodeToString(certPem)
+	keyPem64           = base64.StdEncoding.EncodeToString(keyPem)
 )
 
 func setupLogger() logr.Logger {
