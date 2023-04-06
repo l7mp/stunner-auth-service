@@ -22,7 +22,7 @@ RUN apkArch="$(apk --print-arch)"; \
         aarch64) export GOARCH='arm64' ;; \
         *) export GOARCH='amd64' ;; \
       esac; \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o stunner-auth-server .
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o manager .
 
 ###########
 # Use distroless as minimal base image to package the manager binary
