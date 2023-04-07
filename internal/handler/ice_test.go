@@ -373,6 +373,13 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
+		name:   "plaintext - single config, restrictive filter, no result errs",
+		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
+		status: 404,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+	},
+	{
 		name:   "plaintext - multiple configs, namespace filter",
 		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace",
@@ -443,6 +450,13 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Len(t, uris, 1, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 		},
+	},
+	{
+		name:   "plaintext - multiple configs, restrictive filter, no result errs",
+		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=dummy",
+		status: 404,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 }
 

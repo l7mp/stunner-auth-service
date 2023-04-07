@@ -23,18 +23,28 @@ func (h *Handler) GetIceAuth(w http.ResponseWriter, r *http.Request, params type
 	h.log.Info("GetIceAuth: serving ICE config request", "params", params)
 
 	if store.ConfigMaps.Len() == 0 {
-		http.Error(w, "No STUNner configuration available", http.StatusInternalServerError)
+		e := "no STUNner configuration available"
+		h.log.Info("GetIceAuth: error", "message", e, "status", http.StatusInternalServerError)
+		http.Error(w, e, http.StatusInternalServerError)
 		return
 	}
 
 	iceConfig, err := h.getIceServerConf(params)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error during ICE auth token serialization: %q", err.error),
-			err.status)
+		e := "could not generate ICE auth token"
+		h.log.Info("GetIceAuth: error", "message", e, "error", err.error, "status", err.status)
+		http.Error(w, fmt.Sprintf("%s: %q", e, err.error), err.status)
 		return
 	}
 
-	h.log.Info("GetIceAuth: ready", "response", iceConfig)
+	if len(*iceConfig.IceServers) == 0 {
+		e := "could not generate ICE config: no valid listener found"
+		h.log.Info("GetIceAuth: error", "message", e, "status", http.StatusNotFound)
+		http.Error(w, e, http.StatusNotFound)
+		return
+	}
+
+	h.log.Info("GetIceAuth: ready", "response", iceConfig, "status", 200)
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_ = json.NewEncoder(w).Encode(iceConfig)
@@ -84,33 +94,35 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 }
 
 func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv1a1.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
-	h.log.V(2).Info("getIceServerConfForStunnerConf: considering Stunner config",
+	h.log.V(1).Info("getIceServerConfForStunnerConf: considering Stunner config",
 		"stunner-config", stunnerConfig, "params", params)
 
 	// should we generate an ICE server config for this stunner config?
 	uris := []string{}
 	for _, l := range stunnerConfig.Listeners {
 		l := l
-		h.log.V(2).Info("considering Listener", "listener", l.Name)
-
 		// format is namespace/gateway/listener
 		tokens := strings.Split(l.Name, "/")
 		if len(tokens) != 3 {
-			h.log.Info("invalid Listener", "listener", l.Name)
+			h.log.Info(`invalid Listener: name shoult be "namespace/gateway/listener"`,
+				"name", l.Name)
 			continue
 		}
 		namespace, gateway, listener := tokens[0], tokens[1], tokens[2]
 
+		h.log.V(1).Info("considering Listener", "namespace", namespace,
+			"gateway", gateway, "listener", listener)
+
 		// filter
 		if params.Namespace != nil && *params.Namespace != namespace {
-			h.log.V(2).Info("ignoring Listener due to namespace mismatch",
+			h.log.V(1).Info("ignoring listener due to namespace mismatch",
 				"required-namespace", *params.Namespace,
 				"listener-namespace", namespace)
 			continue
 		}
 
 		if params.Namespace != nil && params.Gateway != nil && *params.Gateway != gateway {
-			h.log.V(2).Info("ignoring listener due to gateway name mismatch",
+			h.log.V(1).Info("ignoring listener due to gateway name mismatch",
 				"required-name", *params.Gateway,
 				"listener-name", gateway)
 			continue
@@ -118,7 +130,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		if params.Namespace != nil && params.Gateway != nil && params.Listener != nil &&
 			*params.Listener != listener {
-			h.log.V(2).Info("ignoring listener due to name mismatch", "required-name",
+			h.log.V(1).Info("ignoring listener due to name mismatch", "required-name",
 				*params.Listener, "listener-name", listener)
 			continue
 		}
@@ -196,7 +208,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		Urls:       &uris,
 	}
 
-	h.log.V(2).Info("getIceServerConfForStunnerConf: ready", "repsonse", iceAuth)
+	h.log.V(1).Info("getIceServerConfForStunnerConf: ready", "repsonse", iceAuth)
 
 	return &iceAuth, nil
 }

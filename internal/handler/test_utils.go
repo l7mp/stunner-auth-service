@@ -20,7 +20,7 @@ const (
 	authTestLoglevel = "all:ERROR"
 
 	// trace
-	// loglevel = zapcore.DebugLevel
+	//loglevel = zapcore.DebugLevel
 	// authTestLoglevel = "all:TRACE"
 )
 

@@ -350,6 +350,26 @@ var _ = Describe("Integration test:", func() {
 			Expect(uris).To(HaveLen(1))
 			Expect(uris).To(ContainElement("turn:1.2.3.5:3478?transport=udp"))
 		})
+
+		It("should return 404 when there is no match", func() {
+			dummyListener := "dummy"
+			param := client.GetIceAuthParams{
+				Username:  &testuser,
+				Namespace: &testnamespace,
+				Gateway:   &testgateway,
+				Listener:  &dummyListener,
+			}
+
+			iceConfig, err = clnt.GetIceConfig(context.TODO(), &param)
+			Expect(err).To(HaveOccurred())
+
+			terr, ok := err.(*client.IceError)
+			Expect(ok).To(BeTrue())
+
+			r := terr.Response
+			Expect(r).NotTo(BeNil())
+			Expect(r.StatusCode()).To(Equal(http.StatusNotFound))
+		})
 	})
 
 	Context("When loading multiple Stunner configs", func() {
@@ -562,6 +582,26 @@ var _ = Describe("Integration test:", func() {
 			uris := *iceAuth.Urls
 			Expect(uris).To(HaveLen(1))
 			Expect(uris).To(ContainElement("turn:1.2.3.4:3478?transport=udp"))
+		})
+
+		It("should return 404 when there is no match", func() {
+			dummyListener := "dummy"
+			param := client.GetIceAuthParams{
+				Username:  &testuser,
+				Namespace: &testnamespace,
+				Gateway:   &testgateway,
+				Listener:  &dummyListener,
+			}
+
+			iceConfig, err = clnt.GetIceConfig(context.TODO(), &param)
+			Expect(err).To(HaveOccurred())
+
+			terr, ok := err.(*client.IceError)
+			Expect(ok).To(BeTrue())
+
+			r := terr.Response
+			Expect(r).NotTo(BeNil())
+			Expect(r.StatusCode()).To(Equal(http.StatusNotFound))
 		})
 	})
 
