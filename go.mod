@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/zapr v1.2.3
 	github.com/gorilla/mux v1.8.0
 	github.com/l7mp/stunner v0.14.5
-	github.com/l7mp/stunner-gateway-operator v0.12.2
+	github.com/l7mp/stunner-gateway-operator v0.12.3
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.24.1
 	github.com/pion/transport/v2 v2.0.2

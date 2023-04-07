@@ -23,6 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	opdefault "github.com/l7mp/stunner-gateway-operator/api/config"
 	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
@@ -55,11 +57,23 @@ func RegisterConfigMapController(mgr manager.Manager, log logr.Logger) error {
 	}
 	r.log.Info("created configmap controller")
 
+	// a label-selector predicate to select the loadbalancer services we are interested in
+	configMapPredicate, err := predicate.LabelSelectorPredicate(
+		metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				// "app:stunner"
+				opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue,
+			},
+		})
+	if err != nil {
+		return err
+	}
+
 	if err := c.Watch(
 		&source.Kind{Type: &corev1.ConfigMap{}},
 		&handler.EnqueueRequestForObject{},
 		// trigger when the ConfigMap spec changes
-		predicate.NewPredicateFuncs(r.validateConfigMapForReconcile),
+		configMapPredicate,
 	); err != nil {
 		return err
 	}
@@ -76,16 +90,12 @@ func (r *configMapReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// find all ConfigMaps
 	cmList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, cmList); err != nil {
+	if err := r.List(ctx, cmList, client.MatchingLabels{opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue}); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	for _, cm := range cmList.Items {
 		cm := cm
-		if !r.validateConfigMapForReconcile(&cm) {
-			continue
-		}
-
 		stnrconf, err := UnpackConfigMap(&cm)
 		if err != nil {
 			log.Error(err, "cannot unpack Stunner dataplane ConfigMap")
@@ -99,13 +109,6 @@ func (r *configMapReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	r.log.V(2).Info("reset ConfigMap store", "configs", store.ConfigMaps.String())
 
 	return reconcile.Result{}, nil
-}
-
-// validateConfigMapForReconcile checks whether the ConfigMap contains a valid STUNner dataplane
-// config. All dataplane configs should have a "related-gateway" annotation.
-func (r *configMapReconciler) validateConfigMapForReconcile(o client.Object) bool {
-	_, found := o.GetAnnotations()[config.DefaultRelatedGatewayAnnotationKey]
-	return found
 }
 
 // unpacks a stunner config

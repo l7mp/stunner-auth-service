@@ -361,6 +361,9 @@ var _ = Describe("Integration test:", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "testconfigmap-2",
 					Namespace: testnamespace,
+					Labels: map[string]string{
+						opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue,
+					},
 					Annotations: map[string]string{
 						opdefault.DefaultRelatedGatewayAnnotationKey: "testGatewayConfig-2",
 					},
