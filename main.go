@@ -74,7 +74,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&port, "port", 8087, "HTTP port (defualt: 8087).")
+	flag.IntVar(&port, "port", 8088, "HTTP port (defualt: 8088).")
 
 	opts := zap.Options{
 		Development: true,

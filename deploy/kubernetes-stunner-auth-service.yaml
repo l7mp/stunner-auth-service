@@ -1,8 +1,51 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app: stunner-auth
+  name: stunner-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stunner-auth
+  namespace: stunner-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: manager-role
+subjects:
+  - kind: ServiceAccount
+    name: stunner-auth
+    namespace: stunner-system
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: stunner-auth
-  namespace: stunner
+  namespace: stunner-system
+  labels:
+    app: stunner-auth
 spec:
   selector:
     matchLabels:
@@ -13,39 +56,55 @@ spec:
       labels:
         app: stunner-auth
     spec:
+      serviceAccountName: stunner-auth
+      terminationGracePeriodSeconds: 10
       containers:
-      - name: stunner-auth-server
-        image: l7mp/stunner-auth-server
-        imagePullPolicy: IfNotPresent
-        # image: localhost/l7mp/stunner-auth-server
-        # imagePullPolicy: Never
-        command: [ "/stunner-auth-server" ]
-        args: ["--verbose","--watch"]
-        env:
-        - name: STUNNERD_CONFIG_PATH
-          value: "/etc/stunnerd/stunnerd.conf"
-        volumeMounts:
-        - name: stunnerd-config-volume
-          mountPath: /etc/stunnerd
-          readOnly: true
-      volumes:
-        - name: stunnerd-config-volume
-          configMap:
-            name: stunnerd-config
-            optional: true
-
+        - name: stunner-auth-server
+          image: l7mp/stunner-auth-server:dev
+          imagePullPolicy: IfNotPresent
+          # image: localhost/l7mp/stunner-auth-server
+          # imagePullPolicy: Never
+          command: [ "./manager" ]
+          # args: ["-zap-log-level","info"]
+          # max loglevel
+          args: ["-zap-log-level","10", "-port", "8088"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - "ALL"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: stunner-auth
-  namespace: stunner
+  namespace: stunner-system
   labels:
     app: stunner-auth
 spec:
   selector:
     app: stunner-auth
   ports:
-    - port: 8080
-      name: stunner-auth-server
+    - name: stunner-auth-server
+      port: 8088
+      # targetPort: 8087
   type: ClusterIP
