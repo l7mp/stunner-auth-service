@@ -18,12 +18,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/go-logr/logr"
+	"log"
+	"net/http"
 	"os"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -32,23 +35,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	//+kubebuilder:scaffold:imports
 
-	"fmt"
-	"net/http"
-
 	"github.com/l7mp/stunner-auth-service/internal/controllers"
 	"github.com/l7mp/stunner-auth-service/internal/handler"
 	"github.com/l7mp/stunner-auth-service/pkg/server"
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = runtime.NewScheme()
 )
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	//+kubebuilder:scaffold:scheme
+}
+
+type serverErrorLogWriter struct {
+	logger logr.Logger
+}
+
+func (l *serverErrorLogWriter) Write(p []byte) (int, error) {
+	m := string(p)
+	l.logger.Info(m)
+	return len(p), nil
+}
+
+func newServerErrorLog(logger logr.Logger) *log.Logger {
+	return log.New(&serverErrorLogWriter{logger.WithName("http-server")}, "", 0)
 }
 
 func main() {
@@ -61,7 +74,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&port, "port", 8080, "HTTP port (defualt: 8080).")
+	flag.IntVar(&port, "port", 8087, "HTTP port (defualt: 8087).")
 
 	opts := zap.Options{
 		Development: true,
@@ -69,7 +82,11 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	logger := zap.New(zap.UseFlagOptions(&opts), func(o *zap.Options) {
+		o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
+	})
+	ctrl.SetLogger(logger.WithName("ctrl-runtime"))
+	setupLog := logger.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
@@ -78,17 +95,6 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "ca893bb3.l7mp.io",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -106,19 +112,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
-
 	setupLog.Info("starting ConfigMap controller")
-	if err := controllers.RegisterConfigMapController(mgr, ctrl.Log); err != nil {
+	if err := controllers.RegisterConfigMapController(mgr, logger); err != nil {
 		setupLog.Error(err, "problem running configmap manager")
 		os.Exit(1)
 	}
 
-	handler, err := handler.NewHandler(ctrl.Log)
+	handler, err := handler.NewHandler(logger)
 	if err != nil {
 		setupLog.Error(err, "could not start authentication server")
 		os.Exit(1)
@@ -126,9 +126,24 @@ func main() {
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
 
-	setupLog.Info("starting server", "port", port)
-	if err := http.ListenAndServe(fmt.Sprintf("0.0.0.0:%d", port), router); err != nil {
-		setupLog.Error(err, "error running HTTP listener")
+	setupLog.Info("starting HTTP REST server", "port", port)
+	srv := &http.Server{
+		Addr:     fmt.Sprintf(":%d", port),
+		Handler:  router,
+		ErrorLog: newServerErrorLog(logger),
+	}
+	defer srv.Close()
+	go func() {
+		if err = srv.ListenAndServe(); err != nil {
+			setupLog.Error(err, "error running HTTP listener")
+			os.Exit(1)
+		}
+	}()
+
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
 }
