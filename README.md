@@ -1,63 +1,99 @@
 # A REST API for generating STUNner TURN authentication credentials 
 
-*Work in progress* 
-
 This service implements the [*REST API For Access To TURN
 Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-00) IETF draft
 specification to assist in accessing the TURN services provided by
-[STUNner](https://github.com/l7mp/stunner). While STUNner allows a fixed username/password pair to
-be used for *all* clients this mode is not recommended for production use; instead this service can
-be used to generate ephemeral (i.e. time-limited) credentials. The usage of ephemeral credentials
-ensures that access to STUNner can be controlled even if the credentials can be discovered by the
-user, as is the case in WebRTC where TURN credentials must be specified in JavaScript.
+[STUNner](https://github.com/l7mp/stunner). By default, STUNner uses a fixed username/password pair
+that can be leveraged by *all* clients to make TURN relay connections. This mode, however, is not
+recommended for production use. Instead, the **STUNner authentication service** provided by this
+REST API can be used to generate per-client ephemeral (i.e. time-limited) credentials with a
+configurable expiration deadline. The usage of ephemeral credentials ensures that access to STUNner
+can be controlled even if the credentials can be discovered by the user, as is the case in WebRTC
+where TURN credentials must be specified in JavaScript.
 
 ## Description
 
 By providing a cloud-based relay service, STUNner ensures that a WebRTC media connection can be
 established via TURN even when one or both sides is incapable of a direct P2P connection.  However,
-as a relay service, STUNner imposes a nontrivial cost on the service provider.  Therefore, it is
-recommended to tightly control user access to the TURN services provided by STUNner.
+as a gateway service, STUNner opens external access to the services running in a Kubernetes
+cluster.  Therefore, it is recommended to tightly control user access to the TURN services provided
+by STUNner.
 
-TURN implements a mechanism to control access via long-term credentials that are provided as part of
-the TURN protocol.  It is expected that these credentials will be kept secret; if the credentials
-are discovered, the TURN server could be used by unauthorized users or applications.  However, in
-web applications, ensuring this secrecy is typically impossible.
+STUNner implements a mechanism to control access via long-term credentials that are provided as
+part of the TURN protocol.  It is expected that these credentials will be kept secret; if the
+credentials are discovered, the TURN server could be used by unauthorized users or applications.
+However, in web applications, ensuring this secrecy is typically impossible.
 
 To address this problem, this service provides a REST API that can be used to retrieve TURN
 credentials specifically for STUNner as the TURN server. The service watches the running STUNner
-dataplane configuration (usually the configmap called `stunnerd-config` in the current namespace)
-and automatically generates TURN credentials that will match the current [authentication
-settings](https://github.com/l7mp/stunner/blob/main/doc/AUTH.md) for STUNner. The main use of this
-service is by the WebRTC application server to generate an [ICE server
+dataplane configuration(s) from Kubernetes and automatically generates TURN credentials that will
+match the current [authentication settings](https://github.com/l7mp/stunner/blob/main/doc/AUTH.md)
+for STUNner. The REST API also allows to easily filter the returned TURN URLs to a selected set of
+STUNner Gateways: it is possible to return all public URLs for the Gateways in a given Kubernetes
+namespace, select STUNner Gateways within a namespace, or to specify exactly which STUNner Gateway
+listener (say, TCP or UDP) the returned credential should apply to. This allows to direct users to
+access the Kubernetes cluster on a specific STUNner listener.
+
+The main use of this service is by a WebRTC application server to generate an [ICE server
 configuration](https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer) to be returned to
-clients to enable them to connect via STUNner as the TURN server.
+clients during session setup, in order to enable them to connect to the media services hosted in a
+Kubernetes cluster via STUNner as the TURN server.
 
 ## Usage
 
 Most users will have the Stunner authentication REST API server automatically deployed into their
 cluster by the Stunner [Helm charts](https://github.com/l7mp/stunner-helm). You can reach the REST
-API server like you reach any other HTTP service in Kubernetes.
+API server like you reach any other HTTP service in Kubernetes. Then, as you add and remove
+Kubernetes Gateway API resources the credentials returned by the REST API server will always
+match the current STUNner dataplane configuration.
 
-The simplest way to experiment with the REST API server is to build and run the server locally,
-bootstrap it with a valid Stunner configuration, and send queries to it using curl. We provide a
-sample Stunner config for this purpose named `stunnerd-test.yaml`.
-
-The below will re-generate the client-side and server-side HTTP request handlers from the OpenAPI
-spec available at `api/stunner.yaml` and start a new REST API server locally on port 8087 (`--port
-8087`), in verbose mode (`--verbose`), using the Stunner config file `stunnerd-test.yaml` (`--config
-stunnerd-test.yaml`), and also enabling watch-mode (`--watch`):
+Alternatively, you can deploy and test using the static manifests packaged with the REST API
+service as follows.
 
 ``` console
-make generate
-go run main.go --verbose --config stunnerd-test.yaml --watch
+kubectl create namespace stunner-system
+kubectl apply -f deploy/kubernetes-stunner-auth-service.yaml
+kubectl apply -f deploy/sample-stunnerd-config.yaml
 ```
+
+The last command loads a fake STUNner running config that we can use to test the authentication
+service without actually deploying STUNner. The sample configuration defines 4 static listeners
+with a IP addresses and ports as follows:
+
+``` console
+cmd/stunnerctl/stunnerctl running-config default/stunnerd-config
+STUN/TURN authentication type:	longterm
+STUN/TURN secret:		my-secret
+Listener 1
+	Name:	testnamespace/testgateway/udp
+	Listener:	testnamespace/testgateway/udp
+	Protocol:	udp
+	Public address:	1.2.3.4
+	Public port:	3478
+Listener 2
+	Name:	dummynamespace/testgateway/tcp
+	Listener:	dummynamespace/testgateway/tcp
+	Protocol:	tcp
+	Public address:	1.2.3.4
+	Public port:	3478
+Listener 3
+	Name:	testnamespace/dummygateway/tls
+	Listener:	testnamespace/dummygateway/tls
+	Protocol:	tls
+Listener 4
+	Name:	testnamespace/testgateway/dtls
+	Listener:	testnamespace/testgateway/dtls
+	Protocol:	dtls
+```
+
+### Generating a TURN authentication token
 
 The below will query the REST API for a TURN authentication token, setting the username to
 `my-user` and the expiration time of the returned TURN credentials to 1 hour from the present
 (`ttl` is set to 3600 sec).
 
 ``` console
-curl -s http://localhost:8087?service=turn\&username=my-user\&ttl=3600| jq .
+curl -s http://http://stunner-auth.stunner-system:8088?service=turn\&username=my-user\&ttl=3600| jq .
 {
   "username": "1680036887:my-user"
   "password": "P8pCmIfe8faGAcbsxevYv35l0j4=",
@@ -71,41 +107,26 @@ curl -s http://localhost:8087?service=turn\&username=my-user\&ttl=3600| jq .
 }
 ```
 
-Note that `service=turn` is mandatory, the rest of the parameters are optional; see the [*REST API
-For Access To TURN
+Note that by default the TURN authentication service is reachable only from the cluster (the
+Service `stunner-auth.stunner-system` that exposes the authentication server is of type
+`ClusterIP`), so you have to issue the `curl` command from a pod running in the same cluster.
+
+:warning: Never expose the STUNner authentication service externally. Since the REST API is not
+authenticated, this would provide unchecked access to anyone to your STUNner Gateway. If you want
+to supply TURN credentials to your WebRTC clients, generate the authentication tokens from the
+application server first and then return the credentials obtained from the REST API during call
+setup!
+
+The parameter `service=turn` is mandatory, the rest of the parameters are optional; see the [*REST
+API For Access To TURN
 Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-00) IETF draft
-specification to understand the fields of the returned JSON. Note also that `jq` is used above only
-to pretty-print the response JSON, feel free to remove it.
+specification to understand the fields of the returned JSON. Due to a limitation of the REST API
+spec, the authentication service can generate TURN access token for only a single Gateway, even if
+you have multiple Gateways configured.  Observe that the response contains only 4 TURN URIs, once
+corresponding to each of the 4 listeners defined in the sample STUNner config. Note also that `jq`
+is used above only to pretty-print the response JSON, feel free to remove it.
 
-Suppose now that the public IP address of the UDP and the TCP TURN listeners (the first two URIs
-above) changes from `1.2.3.4` to `5.6.7.8`. This is reconciled by the [stunner gateway
-operator](https://github.com/l7mp/stunner-gateway-operator) rendering a new running config for
-Stunner, which in the below we simulate locally by exchanging the IP addresses in the local Stunner
-config file as follows:
-
-```console
-sed -i 's/1\.2\.3\.4/5.6.7.8/g' stunnerd-test.yaml 
-```
-
-The REST API server watches this configuration file so it will immediately pick up the new IP
-addresses. This can be seen by asking for another TURN auth token from the auth server:
-
-```console
-curl -s http://localhost:8087?service=turn\&username=my-user\&ttl=3600| jq .
-{
-  "password": "PE7kz+9BJIxe98eST0IE2yo66nI=",
-  "ttl": 3600,
-  "uris": [
-    "turn:5.6.7.8:3478?transport=udp",
-    "turn:5.6.7.8:3478?transport=tcp",
-    "turns:127.0.0.1:3479?transport=tcp",
-    "turns:127.0.0.1:3479?transport=udp"
-  ],
-  "username": "1680037254:my-user"
-}
-```
-
-Observe that the new IP addresses in the first to URIs. 
+### Generating a complete ICE configuration
 
 In addition to TURN authentication tokens, the REST API server can also generate full [ICE
 configurations](https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/RTCPeerConnection#parameters). These
@@ -113,7 +134,7 @@ should be sent from the application to the clients, so that clients can use the 
 to connect via STUNner as the TURN server. Use the `/ice` API endpoint to generate an ICE config:
 
 ``` console
-curl -s http://localhost:8087/ice?service=turn\&username=my-user\&ttl=3600| jq .
+curl -s http://http://stunner-auth.stunner-system:8088/ice?service=turn\&username=my-user\&ttl=3600| jq .
 {
   "iceServers": [
     {
@@ -130,6 +151,36 @@ curl -s http://localhost:8087/ice?service=turn\&username=my-user\&ttl=3600| jq .
   "iceTransportPolicy": "all"
 }
 ```
+
+By default the returned ICE configuration will contain a separate ICE server configuration for each
+Gateway in the cluster. In order to select only the Gateways within a single namespace, provide the
+name of the required namespace in the HTTP request parameters. You can select a particular Gateway
+using the `gateway=<gateway-name>` parameter and a particular listener using
+`listener=<listenername>`. 
+
+For instance, the below will generate a TURN URI only for the first listener in the sample STUNner
+config:
+
+``` console
+curl "http://stunner-auth.stunner-system:8088/ice?service=turn&namespace=testnamespace&gateway=testgateway&listener=udp&iceTransportPolicy=relay"
+{
+  "iceServers": [
+    {
+      "username": "1681252038:"
+      "credential": "+JJnoo+liMnom07gw9moVgUzsEM=",
+      "urls": [
+        "turn:1.2.3.4:3478?transport=udp"
+      ],
+    }
+  ],
+  "iceTransportPolicy": "relay"
+}
+```
+
+Note that the parameter `iceTransportPolicy=relay` will set the `iceTransportPolicy` to `relay` (by
+default it is set to `all`): this is useful to force the client to skip generating host and
+server-reflexive ICE candidates (which will not work with STUNner anyway) and unconditionally use
+TURN for connecting.
 
 ## API
 
