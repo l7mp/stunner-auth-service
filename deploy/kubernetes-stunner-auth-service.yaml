@@ -61,7 +61,7 @@ spec:
       containers:
         - name: stunner-auth-server
           image: l7mp/stunner-auth-server:dev
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           # image: localhost/l7mp/stunner-auth-server
           # imagePullPolicy: Never
           command: [ "./manager" ]

@@ -160,7 +160,18 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 	}
 
 	username, password := "", ""
-	atype, err := stnrv1a1.NewAuthType(auth.Type)
+	authType := auth.Type
+
+	// aliases
+	switch authType {
+	// plaintext
+	case "static", "plaintext":
+		authType = "plaintext"
+	case "ephemeral", "timewindowed", "longterm":
+		authType = "longterm"
+	}
+
+	atype, err := stnrv1a1.NewAuthType(authType)
 	if err != nil {
 		return nil, &hErr{
 			fmt.Errorf("Internal server error: %w", err),

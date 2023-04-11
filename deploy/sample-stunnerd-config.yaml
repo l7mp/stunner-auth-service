@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: stunnerd-config
   labels:
-    app: stunner
+    stunner.l7mp.io/owned-by: stunner
 data:
   "stunnerd.conf": |
     {"version":"v1alpha1","admin":{"name":"stunnerd","logLevel":"all:INFO"},"auth":{"type":"longterm","credentials":{"secret":"my-secret"}},"listeners":[{"name":"testnamespace/testgateway/udp","address":"127.0.0.1","port":23478,"protocol":"udp","public_address":"1.2.3.4","public_port":3478},{"name":"dummynamespace/testgateway/tcp","address":"127.0.0.1","protocol":"tcp","port":3478,"public_address":"1.2.3.4","public_port":3478},{"name":"testnamespace/dummygateway/tls","protocol":"tls","address":"127.0.0.1","port":3479,"cert":"/tmp/crt.cert","key":"/tmp/crt.key"},{"name":"testnamespace/testgateway/dtls","protocol":"dtls","address":"127.0.0.1","port":3479,"cert":"/tmp/crt.cert","key":"/tmp/crt.key"}]}
