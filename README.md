@@ -208,9 +208,14 @@ Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-0
 ### Request
 
 A request to the `getTurnAuth` API endpoint includes the following parameters, specified in the URL:
-- `service`: specifies the desired service (turn)
-- `username`: an optional user id to be associated with the credentials
-- `key`: if an API key is used for authentication, the API key
+- `service`: specifies the desired service (turn).
+- `username`: an optional user id to be associated with the credentials.
+- `key`: if an API key is used for authentication, the API key.
+- `namespace`: consider only the STUNner Gateways in the given namespace when generating TURN URIs.
+- `gateway`: consider only the specified STUNner Gateway; if `gateway` is set then `namespace` must
+  be set as well.
+- `listener`: consider only the specified listener on the given STUNner Gateway; if `listener` is
+  set then `namespace` and `gateway` must be set too.
 
 ### Response
 
