@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	opdefault "github.com/l7mp/stunner-gateway-operator/api/config"
+	opdefault "github.com/l7mp/stunner-gateway-operator/pkg/config"
 )
 
 const (
@@ -19,7 +19,7 @@ const (
 	ConfigPathEnvName = "STUNNERD_CONFIG_PATH"
 
 	// RelatedGatewayAnnotationKey should match the same def in the stunner-gateway-operator.
-	DefaultRelatedGatewayAnnotationKey = opdefault.DefaultRelatedGatewayAnnotationKey
+	DefaultRelatedGatewayAnnotationKey = opdefault.RelatedGatewayAnnotationKey
 
 	// DefaultStunnerdConfigfileName should match the same def in the stunner-gateway-operator.
 	DefaultStunnerdConfigfileName = opdefault.DefaultStunnerdConfigfileName

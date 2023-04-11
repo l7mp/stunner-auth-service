@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	opdefault "github.com/l7mp/stunner-gateway-operator/api/config"
+	opdefault "github.com/l7mp/stunner-gateway-operator/pkg/config"
 	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
@@ -62,7 +62,7 @@ func RegisterConfigMapController(mgr manager.Manager, log logr.Logger) error {
 		metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				// "app:stunner"
-				opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue,
+				opdefault.OwnedByLabelKey: opdefault.OwnedByLabelValue,
 			},
 		})
 	if err != nil {
@@ -90,7 +90,7 @@ func (r *configMapReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	// find all ConfigMaps
 	cmList := &corev1.ConfigMapList{}
-	if err := r.List(ctx, cmList, client.MatchingLabels{opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue}); err != nil {
+	if err := r.List(ctx, cmList, client.MatchingLabels{opdefault.OwnedByLabelKey: opdefault.OwnedByLabelValue}); err != nil {
 		return reconcile.Result{}, err
 	}
 

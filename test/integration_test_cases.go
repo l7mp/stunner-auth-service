@@ -38,7 +38,7 @@ import (
 	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
 	a12n "github.com/l7mp/stunner/pkg/authentication"
 
-	opdefault "github.com/l7mp/stunner-gateway-operator/api/config"
+	opdefault "github.com/l7mp/stunner-gateway-operator/pkg/config"
 
 	"github.com/l7mp/stunner-auth-service/pkg/client"
 )
@@ -382,10 +382,10 @@ var _ = Describe("Integration test:", func() {
 					Name:      "testconfigmap-2",
 					Namespace: testnamespace,
 					Labels: map[string]string{
-						opdefault.DefaultAppLabelKey: opdefault.DefaultAppLabelValue,
+						opdefault.OwnedByLabelKey: opdefault.OwnedByLabelValue,
 					},
 					Annotations: map[string]string{
-						opdefault.DefaultRelatedGatewayAnnotationKey: "testGatewayConfig-2",
+						opdefault.RelatedGatewayAnnotationKey: "testGatewayConfig-2",
 					},
 				},
 				Data: map[string]string{
