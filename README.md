@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="STUNner Authentication Service", src="docs/img/stunner_auth.svg" width="50%" height="50%"></br>
+  <img alt="STUNner Authentication Service", src="stunner_auth.svg" width="50%" height="50%"></br>
   <a href="https://discord.gg/DyPgEsbwzc" alt="Discord">
     <img alt="Discord" src="https://img.shields.io/discord/945255818494902282" /></a>
   <a href="https://github.com/l7mp/stunner-auth-service/blob/main/LICENSE" alt="MIT">
