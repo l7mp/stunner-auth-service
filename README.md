@@ -116,7 +116,8 @@ Note that by default the TURN authentication service is reachable only from with
 Service `stunner-auth.stunner-system` that exposes the authentication server is of type
 `ClusterIP`), so you have to issue the `curl` command from a pod running in the same cluster.
 
-:warning: Never expose the STUNner authentication service externally. Since the REST API is not
+> **Warning** 
+> Never expose the STUNner authentication service externally. Since the REST API is not
 authenticated, this would provide unchecked access to anyone to your STUNner gateways. If you want
 to supply TURN credentials to your WebRTC clients, generate the authentication tokens from the
 application server first and then return the credentials obtained from the REST API during call
