@@ -70,7 +70,7 @@ func RegisterConfigMapController(mgr manager.Manager, log logr.Logger) error {
 	}
 
 	if err := c.Watch(
-		&source.Kind{Type: &corev1.ConfigMap{}},
+		source.Kind(mgr.GetCache(), &corev1.ConfigMap{}),
 		&handler.EnqueueRequestForObject{},
 		// trigger when the ConfigMap spec changes
 		configMapPredicate,
