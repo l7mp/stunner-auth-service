@@ -15,12 +15,11 @@ import (
 
 const (
 	// normal error level
-	//loglevel = 0
 	loglevel         = zapcore.ErrorLevel
 	authTestLoglevel = "all:ERROR"
 
 	// trace
-	//loglevel = zapcore.DebugLevel
+	// loglevel         = zapcore.DebugLevel
 	// authTestLoglevel = "all:TRACE"
 )
 
@@ -56,7 +55,7 @@ var plaintextAuthConfig = v1alpha1.StunnerConfig{
 	Listeners: []v1alpha1.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp",
-			Protocol:   "udp",
+			Protocol:   "turn-udp",
 			PublicAddr: "1.2.3.4",
 			PublicPort: 3478,
 			Addr:       "127.0.0.1",
@@ -64,7 +63,7 @@ var plaintextAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "dummynamespace/testgateway/tcp",
-			Protocol:   "tcp",
+			Protocol:   "turn-tcp",
 			PublicAddr: "1.2.3.4",
 			PublicPort: 3478,
 			Addr:       "127.0.0.1",
@@ -72,7 +71,7 @@ var plaintextAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "testnamespace/dummygateway/tls",
-			Protocol:   "tls",
+			Protocol:   "turn-tls",
 			PublicAddr: "",
 			PublicPort: 0,
 			Addr:       "127.0.0.1",
@@ -82,7 +81,7 @@ var plaintextAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "testnamespace/testgateway/dtls",
-			Protocol:   "dtls",
+			Protocol:   "turn-dtls",
 			PublicAddr: "",
 			PublicPort: 0,
 			Addr:       "127.0.0.1",
@@ -110,7 +109,7 @@ var longtermAuthConfig = v1alpha1.StunnerConfig{
 	Listeners: []v1alpha1.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp-2",
-			Protocol:   "udp",
+			Protocol:   "turn-udp",
 			PublicAddr: "1.2.3.5",
 			PublicPort: 3478,
 			Addr:       "127.0.0.2",
@@ -118,7 +117,7 @@ var longtermAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "dummynamespace/testgateway/tcp-2",
-			Protocol:   "tcp",
+			Protocol:   "turn-tcp",
 			PublicAddr: "1.2.3.5",
 			PublicPort: 3478,
 			Addr:       "127.0.0.2",
@@ -126,7 +125,7 @@ var longtermAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "testnamespace/dummygateway/tls-2",
-			Protocol:   "tls",
+			Protocol:   "turn-tls",
 			PublicAddr: "",
 			PublicPort: 0,
 			Addr:       "127.0.0.2",
@@ -136,7 +135,7 @@ var longtermAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		}, {
 			Name:       "testnamespace/testgateway/dtls-2",
-			Protocol:   "dtls",
+			Protocol:   "turn-dtls",
 			PublicAddr: "",
 			PublicPort: 0,
 			Addr:       "127.0.0.2",

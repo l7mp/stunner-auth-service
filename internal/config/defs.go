@@ -19,7 +19,7 @@ const (
 	ConfigPathEnvName = "STUNNERD_CONFIG_PATH"
 
 	// RelatedGatewayAnnotationKey should match the same def in the stunner-gateway-operator.
-	DefaultRelatedGatewayAnnotationKey = opdefault.RelatedGatewayAnnotationKey
+	DefaultRelatedGatewayAnnotationKey = opdefault.RelatedGatewayKey
 
 	// DefaultStunnerdConfigfileName should match the same def in the stunner-gateway-operator.
 	DefaultStunnerdConfigfileName = opdefault.DefaultStunnerdConfigfileName

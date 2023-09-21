@@ -385,7 +385,7 @@ var _ = Describe("Integration test:", func() {
 						opdefault.OwnedByLabelKey: opdefault.OwnedByLabelValue,
 					},
 					Annotations: map[string]string{
-						opdefault.RelatedGatewayAnnotationKey: "testGatewayConfig-2",
+						opdefault.RelatedGatewayKey: "testGatewayConfig-2",
 					},
 				},
 				Data: map[string]string{
