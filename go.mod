@@ -7,8 +7,8 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/go-logr/zapr v1.2.4
 	github.com/gorilla/mux v1.8.0
-	github.com/l7mp/stunner v0.15.2
-	github.com/l7mp/stunner-gateway-operator v0.15.1
+	github.com/l7mp/stunner v0.15.3
+	github.com/l7mp/stunner-gateway-operator v0.15.2
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.10
 	github.com/pion/transport/v2 v2.2.1
@@ -111,4 +111,4 @@ require (
 
 // replace k8s.io/client-go => k8s.io/client-go v0.28.0-alpha.3
 
-// replace github.com/l7mp/stunner => ../stunner
+//replace github.com/l7mp/stunner => ../stunner
