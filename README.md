@@ -72,23 +72,23 @@ STUN/TURN secret:		my-secret
 Listener 1
 	Name:	testnamespace/testgateway/udp
 	Listener:	testnamespace/testgateway/udp
-	Protocol:	udp
+	Protocol:	TURN-UDP
 	Public address:	1.2.3.4
 	Public port:	3478
 Listener 2
 	Name:	dummynamespace/testgateway/tcp
 	Listener:	dummynamespace/testgateway/tcp
-	Protocol:	tcp
+	Protocol:	TURN-TCP
 	Public address:	1.2.3.4
 	Public port:	3478
 Listener 3
 	Name:	testnamespace/dummygateway/tls
 	Listener:	testnamespace/dummygateway/tls
-	Protocol:	tls
+	Protocol:	TURN-TLS
 Listener 4
 	Name:	testnamespace/testgateway/dtls
 	Listener:	testnamespace/testgateway/dtls
-	Protocol:	dtls
+	Protocol:	TURN-DTLS
 ```
 
 ### Generating a TURN authentication token
