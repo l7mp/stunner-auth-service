@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/l7mp/stunner"
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 	a12n "github.com/l7mp/stunner/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
@@ -93,7 +93,7 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 	return iceConfig, nil
 }
 
-func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv1a1.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
+func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv1.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
 	h.log.V(1).Info("getIceServerConfForStunnerConf: considering Stunner config",
 		"stunner-config", stunnerConfig, "params", params)
 
@@ -171,7 +171,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		authType = "longterm"
 	}
 
-	atype, err := stnrv1a1.NewAuthType(authType)
+	atype, err := stnrv1.NewAuthType(authType)
 	if err != nil {
 		return nil, &hErr{
 			fmt.Errorf("Internal server error: %w", err),
@@ -182,7 +182,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 	// 	fmt.Sprintf("%#v", params))
 
 	switch atype {
-	case stnrv1a1.AuthTypePlainText:
+	case stnrv1.AuthTypePlainText:
 		u, userFound := auth.Credentials["username"]
 		p, passFound := auth.Credentials["password"]
 		if !userFound || !passFound {
@@ -195,7 +195,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		username = u
 		password = p
 
-	case stnrv1a1.AuthTypeLongTerm:
+	case stnrv1.AuthTypeLongTerm:
 		secret, secretFound := auth.Credentials["secret"]
 		if !secretFound {
 			return nil, &hErr{

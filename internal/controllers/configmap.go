@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	opdefault "github.com/l7mp/stunner-gateway-operator/pkg/config"
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/internal/store"
@@ -86,7 +86,7 @@ func (r *configMapReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	log := r.log.WithValues("gateway-config", req.String())
 	log.Info("reconciling")
 
-	cms := []*stnrv1a1.StunnerConfig{}
+	cms := []*stnrv1.StunnerConfig{}
 
 	// find all ConfigMaps
 	cmList := &corev1.ConfigMapList{}
@@ -112,8 +112,8 @@ func (r *configMapReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 }
 
 // unpacks a stunner config
-func UnpackConfigMap(cm *corev1.ConfigMap) (stnrv1a1.StunnerConfig, error) {
-	conf := stnrv1a1.StunnerConfig{}
+func UnpackConfigMap(cm *corev1.ConfigMap) (stnrv1.StunnerConfig, error) {
+	conf := stnrv1.StunnerConfig{}
 
 	jsonConf, found := cm.Data[config.DefaultStunnerdConfigfileName]
 	if !found {
@@ -122,7 +122,7 @@ func UnpackConfigMap(cm *corev1.ConfigMap) (stnrv1a1.StunnerConfig, error) {
 	}
 
 	if err := json.Unmarshal([]byte(jsonConf), &conf); err != nil {
-		return stnrv1a1.StunnerConfig{}, err
+		return stnrv1.StunnerConfig{}, err
 	}
 
 	return conf, nil

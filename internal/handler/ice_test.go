@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner"
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 	a12n "github.com/l7mp/stunner/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/store"
@@ -26,7 +26,7 @@ import (
 
 type iceAuthTestCase struct {
 	name   string
-	config []*stnrv1a1.StunnerConfig
+	config []*stnrv1.StunnerConfig
 	params string
 	status int
 	tester func(t *testing.T, iceAuth *types.IceConfig, authHandler a12n.AuthHandler)
@@ -35,14 +35,14 @@ type iceAuthTestCase struct {
 var iceAuthTestCases = []iceAuthTestCase{
 	{
 		name:   "empty config",
-		config: []*stnrv1a1.StunnerConfig{},
+		config: []*stnrv1.StunnerConfig{},
 		params: "service=turn",
 		status: http.StatusInternalServerError,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "plaintext",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -64,16 +64,16 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1a1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - dummy service",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=dummy",
 		status: http.StatusBadRequest,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -82,7 +82,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 
 	{
 		name:   "plaintext - username set",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -105,16 +105,16 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1a1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext -- ttl set",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -137,16 +137,16 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1a1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- basic",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -171,23 +171,23 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1a1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- dummy service",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=dummy",
 		status: 400,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "longterm -- username set",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -212,16 +212,16 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1a1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- username, ttl set",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -249,14 +249,14 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, ok := authHandler(*iceAuth.Username, stnrv1a1.DefaultRealm,
+			_, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
 	},
 	{
 		name:   "plaintext - multiple configs, no filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig, &longtermAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -320,7 +320,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	// gateway filters
 	{
 		name:   "plaintext - single config, namespace filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -339,7 +339,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - single config, gateway filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -357,7 +357,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - single config, listener filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -374,14 +374,14 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - single config, restrictive filter, no result errs",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "plaintext - multiple configs, namespace filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -409,7 +409,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - multiple configs, gateway filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -435,7 +435,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - multiple configs, listener filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -453,7 +453,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "plaintext - multiple configs, restrictive filter, no result errs",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=dummy",
 		status: 404,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
@@ -541,7 +541,7 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	log := loggerFactory.NewLogger("test-watch")
 
 // 	log.Debug("editing config file")
-// 	watchTestConfig := stnrv1a1.StunnerConfig{}
+// 	watchTestConfig := stnrv1.StunnerConfig{}
 // 	basicAuthTestConfig.DeepCopyInto(&watchTestConfig)
 
 // 	// remove the last listener
@@ -611,11 +611,11 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 
-// 	key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 // 	assert.True(t, ok, "authHandler key ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 // 	log.Debug("--------------------------------------")
 // 	log.Debug("editing config file: change username")
@@ -652,15 +652,15 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 
-// 	key, ok = authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok = authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 // 	assert.True(t, ok, "authHandler key ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 // 	log.Debug("--------------------------------------")
 // 	log.Debug("editing config file: change auth type")
-// 	watchTestConfig.Auth = stnrv1a1.AuthConfig{
+// 	watchTestConfig.Auth = stnrv1.AuthConfig{
 // 		Type: "longterm",
 // 		Credentials: map[string]string{
 // 			"secret": "my-secret",
@@ -701,15 +701,15 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 
-// 	key, ok = authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok = authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 // 	assert.True(t, ok, "authHandler ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 // 	log.Debug("--------------------------------------")
 // 	log.Debug("editing config file: adding a new listener")
-// 	l := stnrv1a1.ListenerConfig{}
+// 	l := stnrv1.ListenerConfig{}
 // 	basicAuthTestConfig.Listeners[3].DeepCopyInto(&l)
 // 	watchTestConfig.Listeners = append(watchTestConfig.Listeners, l)
 
@@ -749,11 +749,11 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-// 	key, ok = authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok = authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 // 	assert.True(t, ok, "authHandler ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 // 	log.Debug("--------------------------------------")
 // 	log.Debug("editing config file: adding a new public IP/port to a listener")
@@ -796,11 +796,11 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 // 	assert.Contains(t, uris, "turns:4.3.2.1:12345?transport=udp", "DTLS URI")
 
-// 	key, ok = authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok = authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("4.3.2.1"), Port: 12345})
 // 	assert.True(t, ok, "authHandler ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 // 	log.Debug("--------------------------------------")
 // 	log.Debug("editing config file: changing the proto for a listener")
@@ -817,7 +817,7 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 
 // 	// let STUNner pick up the config -- will cause a restart!
 // 	err = s.Reconcile(watchTestConfig)
-// 	_, ok = err.(stnrv1a1.ErrRestarted)
+// 	_, ok = err.(stnrv1.ErrRestarted)
 // 	assert.True(t, ok, "reconcile")
 
 // 	// wait so that the auth-server has comfortable time to pick up the new config
@@ -844,9 +844,9 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 // 	assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 // 	assert.Contains(t, uris, "turns:4.3.2.1:12345?transport=udp", "DTLS URI")
 
-// 	key, ok = authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+// 	key, ok = authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 // 		&net.UDPAddr{IP: net.ParseIP("4.3.2.1"), Port: 12345})
 // 	assert.True(t, ok, "authHandler ok")
 // 	assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-// 		stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+// 		stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 // }

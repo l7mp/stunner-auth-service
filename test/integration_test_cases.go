@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
 	// "regexp"
 	"time"
 
@@ -35,7 +36,7 @@ import (
 	// k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	// ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 	a12n "github.com/l7mp/stunner/pkg/authentication"
 
 	opdefault "github.com/l7mp/stunner-gateway-operator/pkg/config"
@@ -619,7 +620,7 @@ var _ = Describe("Integration test:", func() {
 
 			ctrl.Log.Info("updating ConfigMap")
 			recreateOrUpdateConfigMap(func(current *corev1.ConfigMap) {
-				sc := stnrv1a1.StunnerConfig{}
+				sc := stnrv1.StunnerConfig{}
 				plaintextAuthConfig.DeepCopyInto(&sc)
 				sc.Auth.Credentials["username"] = "user2"
 				s, _ := json.Marshal(sc)
@@ -697,7 +698,7 @@ var _ = Describe("Integration test:", func() {
 		It("should return a new ICE config", func() {
 			ctrl.Log.Info("updating ConfigMap")
 			recreateOrUpdateConfigMap(func(current *corev1.ConfigMap) {
-				sc := stnrv1a1.StunnerConfig{}
+				sc := stnrv1.StunnerConfig{}
 				plaintextAuthConfig.DeepCopyInto(&sc)
 				sc.Auth.Credentials["username"] = "user3"
 				s, _ := json.Marshal(sc)

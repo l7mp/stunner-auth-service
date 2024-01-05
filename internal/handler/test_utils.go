@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/l7mp/stunner"
-	"github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 )
 
 const (
@@ -39,20 +39,20 @@ func setupLogger() logr.Logger {
 	return zapr.NewLogger(zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel)))
 }
 
-var plaintextAuthConfig = v1alpha1.StunnerConfig{
-	ApiVersion: "v1alpha1",
-	Admin: v1alpha1.AdminConfig{
+var plaintextAuthConfig = stnrv1.StunnerConfig{
+	ApiVersion: "v1",
+	Admin: stnrv1.AdminConfig{
 		Name:     "stunnerd",
 		LogLevel: authTestLoglevel,
 	},
-	Auth: v1alpha1.AuthConfig{
+	Auth: stnrv1.AuthConfig{
 		Type:  "plaintext",
 		Realm: "",
 		Credentials: map[string]string{
 			"username": "user1",
 			"password": "pass1",
 		}},
-	Listeners: []v1alpha1.ListenerConfig{
+	Listeners: []stnrv1.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp",
 			Protocol:   "turn-udp",
@@ -91,22 +91,22 @@ var plaintextAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		},
 	},
-	Clusters: []v1alpha1.ClusterConfig{},
+	Clusters: []stnrv1.ClusterConfig{},
 }
 
-var longtermAuthConfig = v1alpha1.StunnerConfig{
-	ApiVersion: "v1alpha1",
-	Admin: v1alpha1.AdminConfig{
+var longtermAuthConfig = stnrv1.StunnerConfig{
+	ApiVersion: "v1",
+	Admin: stnrv1.AdminConfig{
 		Name:     "stunnerd",
 		LogLevel: authTestLoglevel,
 	},
-	Auth: v1alpha1.AuthConfig{
+	Auth: stnrv1.AuthConfig{
 		Type:  "longterm",
 		Realm: "",
 		Credentials: map[string]string{
 			"secret": "my-secret",
 		}},
-	Listeners: []v1alpha1.ListenerConfig{
+	Listeners: []stnrv1.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp-2",
 			Protocol:   "turn-udp",
@@ -145,5 +145,5 @@ var longtermAuthConfig = v1alpha1.StunnerConfig{
 			Routes:     []string{},
 		},
 	},
-	Clusters: []v1alpha1.ClusterConfig{},
+	Clusters: []stnrv1.ClusterConfig{},
 }

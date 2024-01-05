@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner"
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 	a12n "github.com/l7mp/stunner/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/store"
@@ -26,7 +26,7 @@ import (
 
 type turnAuthTestCase struct {
 	name   string
-	config []*stnrv1a1.StunnerConfig
+	config []*stnrv1.StunnerConfig
 	params string
 	status int
 	tester func(t *testing.T, turnAuth *types.TurnAuthenticationToken, s a12n.AuthHandler)
@@ -35,14 +35,14 @@ type turnAuthTestCase struct {
 var turnAuthTestCases = []turnAuthTestCase{
 	{
 		name:   "empty config",
-		config: []*stnrv1a1.StunnerConfig{},
+		config: []*stnrv1.StunnerConfig{},
 		params: "service=turn",
 		status: http.StatusInternalServerError,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "plaintext",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -61,24 +61,24 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 
 		},
 	},
 	{
 		name:   "plaintext - wring service",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=dummy",
 		status: http.StatusBadRequest,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "plaintext - username set",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -97,16 +97,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - ttl set",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -125,16 +125,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- basic",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -155,23 +155,23 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- dummy service",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=dummy",
 		status: 400,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "longterm -- username set",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -192,16 +192,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "longterm -- ttl set",
-		config: []*stnrv1a1.StunnerConfig{&longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&longtermAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -222,7 +222,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			_, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler errs")
 		},
@@ -230,7 +230,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	// gateway filters
 	{
 		name:   "plaintext - single config, namespace filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -248,16 +248,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - single config, gateway filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -274,16 +274,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - single config, listener filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -299,23 +299,23 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Len(t, uris, 1, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - single config, restrictive filter, no result errs",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "plaintext - multiple configs, namespace filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -349,16 +349,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 				assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 				assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 			}
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - multiple configs, gateway filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -391,16 +391,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 				assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 			}
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - multiple configs, listener filter",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig, &longtermAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -431,16 +431,16 @@ var turnAuthTestCases = []turnAuthTestCase{
 				assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			}
 
-			key, ok := authHandler(*turnAuth.Username, stnrv1a1.DefaultRealm,
+			key, ok := authHandler(*turnAuth.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuth.Username,
-				stnrv1a1.DefaultRealm, *turnAuth.Password), "auth handler ok")
+				stnrv1.DefaultRealm, *turnAuth.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "plaintext - multiple configs, restrictive filter, no result errs",
-		config: []*stnrv1a1.StunnerConfig{&plaintextAuthConfig},
+		config: []*stnrv1.StunnerConfig{&plaintextAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
 		tester: func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},

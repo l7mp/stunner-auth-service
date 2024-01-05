@@ -5,10 +5,10 @@ import (
 	"strings"
 	"sync"
 
-	stnrv1a1 "github.com/l7mp/stunner/pkg/apis/v1alpha1"
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
 )
 
-type Object = *stnrv1a1.StunnerConfig
+type Object = *stnrv1.StunnerConfig
 
 var ConfigMaps = NewStore()
 
