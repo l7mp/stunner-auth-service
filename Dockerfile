@@ -1,4 +1,4 @@
-# Build the manager binary
+# Build the auth binary
 FROM golang:1.21 as builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -22,16 +22,14 @@ RUN apkArch="$(apk --print-arch)"; \
         aarch64) export GOARCH='arm64' ;; \
         *) export GOARCH='amd64' ;; \
       esac; \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o manager .
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o authd .
 
 ###########
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/authd .
 USER 65532:65532
 
 EXPOSE 8080/tcp
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/authd"]

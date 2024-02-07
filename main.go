@@ -1,151 +1,116 @@
-/*
-Copyright 2023.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
-	"flag"
+	"context"
 	"fmt"
-	"github.com/go-logr/logr"
-	"log"
+	golog "log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"github.com/pion/logging"
+	flag "github.com/spf13/pflag"
+	cliopt "k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"go.uber.org/zap/zapcore"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	//+kubebuilder:scaffold:imports
+	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
+	cdsclient "github.com/l7mp/stunner/pkg/config/client"
+	"github.com/l7mp/stunner/pkg/logger"
 
-	"github.com/l7mp/stunner-auth-service/internal/controllers"
 	"github.com/l7mp/stunner-auth-service/internal/handler"
 	"github.com/l7mp/stunner-auth-service/pkg/server"
 )
 
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	//+kubebuilder:scaffold:scheme
+type httpLogWriter struct {
+	logger logging.LeveledLogger
 }
 
-type serverErrorLogWriter struct {
-	logger logr.Logger
-}
-
-func (l *serverErrorLogWriter) Write(p []byte) (int, error) {
-	m := string(p)
-	l.logger.Info(m)
+func (l *httpLogWriter) Write(p []byte) (int, error) {
+	l.logger.Info(string(p))
 	return len(p), nil
 }
 
-func newServerErrorLog(logger logr.Logger) *log.Logger {
-	return log.New(&serverErrorLogWriter{logger.WithName("http-server")}, "", 0)
-}
-
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	var port int
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-	flag.IntVar(&port, "port", 8088, "HTTP port (defualt: 8088).")
+	os.Args[0] = "authd"
+	port := flag.IntP("port", "p", 8088, "HTTP port (defualt: 8088)")
+	level := flag.StringP("log", "l", "", "Log level (format: <scope>:<level>, overrides: PION_LOG_*, default: all:INFO)")
+	verbose := flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>")
 
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
+	// Kubernetes config flags
+	k8sFlags := cliopt.NewConfigFlags(true)
+	k8sFlags.AddFlags(flag.CommandLine)
+
+	// CDS server discovery flags
+	cdsFlags := cdsclient.NewCDSConfigFlags()
+	cdsFlags.AddFlags(flag.CommandLine)
+
 	flag.Parse()
 
-	logger := zap.New(zap.UseFlagOptions(&opts), func(o *zap.Options) {
-		o.TimeEncoder = zapcore.RFC3339NanoTimeEncoder
-	})
-	ctrl.SetLogger(logger.WithName("ctrl-runtime"))
-	setupLog := logger.WithName("setup")
+	logLevel := stnrv1.DefaultLogLevel
+	if *verbose {
+		logLevel = "all:DEBUG"
+	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme: scheme,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsAddr,
-		},
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "ca893bb3.l7mp.io",
-	})
+	if *level != "" {
+		logLevel = *level
+	}
+
+	loggerFactory := logger.NewLoggerFactory(logLevel)
+	log := loggerFactory.NewLogger("authd")
+
+	conf := make(chan *stnrv1.StunnerConfig, 10)
+	defer close(conf)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info("Obtaining CDS server address")
+	cdsAddr, err := cdsclient.DiscoverK8sCDSServer(ctx, k8sFlags, cdsFlags,
+		loggerFactory.NewLogger("k8s-discover"))
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		log.Errorf("Could not find CDS server: %s", err.Error())
 		os.Exit(1)
 	}
 
-	//+kubebuilder:scaffold:builder
-
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
-
-	setupLog.Info("starting ConfigMap controller")
-	if err := controllers.RegisterConfigMapController(mgr, logger); err != nil {
-		setupLog.Error(err, "problem running configmap manager")
-		os.Exit(1)
-	}
-
-	handler, err := handler.NewHandler(logger)
+	log.Infof("Starting CDS client to server at %s", cdsAddr)
+	client, err := cdsclient.NewAllConfigsAPI(cdsAddr, loggerFactory.NewLogger("cds-client"))
 	if err != nil {
-		setupLog.Error(err, "could not start authentication server")
+		log.Errorf("Could not start CDS client: %s", err.Error())
 		os.Exit(1)
 	}
+
+	if err := client.Watch(ctx, conf); err != nil {
+		log.Errorf("Could not watch CDS server: %s", err.Error())
+		os.Exit(1)
+	}
+
+	log.Info("Starting auth request handler")
+	handler, err := handler.NewHandler(conf, loggerFactory.NewLogger("auth-svc"))
+	if err != nil {
+		log.Errorf("could not start authentication server: %s", err.Error())
+		os.Exit(1)
+	}
+	handler.Start(ctx)
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
 
-	setupLog.Info("starting HTTP REST server", "port", port)
+	log.Infof("Starting HTTP REST server at port %d", *port)
 	srv := &http.Server{
-		Addr:     fmt.Sprintf(":%d", port),
+		Addr:     fmt.Sprintf(":%d", *port),
 		Handler:  router,
-		ErrorLog: newServerErrorLog(logger),
+		ErrorLog: golog.New(&httpLogWriter{loggerFactory.NewLogger("http-server")}, "", 0),
 	}
 	defer srv.Close()
+
 	go func() {
 		if err = srv.ListenAndServe(); err != nil {
-			setupLog.Error(err, "error running HTTP listener")
+			log.Errorf("HTTP server error: %s", err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	<-sigs
 
 }

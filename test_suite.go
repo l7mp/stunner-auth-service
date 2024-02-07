@@ -1,4 +1,4 @@
-package handler
+package main
 
 import (
 	"encoding/base64"
@@ -6,21 +6,20 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-
 	"github.com/l7mp/stunner"
 	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
 	// normal error level
-	loglevel         = zapcore.ErrorLevel
 	authTestLoglevel = "all:ERROR"
-
-	// trace
-	// loglevel         = zapcore.DebugLevel
 	// authTestLoglevel = "all:TRACE"
+	// authTestLoglevel = "all:INFO,cds-server:TRACE,cds-client:TRACE,auth-test:TRACE,auth-handler:TRACE"
+
+	loglevel = zapcore.ErrorLevel
+	// loglevel = zapcore.Level(-10)
 )
 
 var (
@@ -39,14 +38,14 @@ func setupLogger() logr.Logger {
 	return zapr.NewLogger(zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel)))
 }
 
-var plaintextAuthConfig = stnrv1.StunnerConfig{
+var staticAuthConfig = stnrv1.StunnerConfig{
 	ApiVersion: "v1",
 	Admin: stnrv1.AdminConfig{
-		Name:     "stunnerd",
+		Name:     "testnamespace/stunnerd-static",
 		LogLevel: authTestLoglevel,
 	},
 	Auth: stnrv1.AuthConfig{
-		Type:  "plaintext",
+		Type:  "static",
 		Realm: "",
 		Credentials: map[string]string{
 			"username": "user1",
@@ -94,14 +93,14 @@ var plaintextAuthConfig = stnrv1.StunnerConfig{
 	Clusters: []stnrv1.ClusterConfig{},
 }
 
-var longtermAuthConfig = stnrv1.StunnerConfig{
+var ephemeralAuthConfig = stnrv1.StunnerConfig{
 	ApiVersion: "v1",
 	Admin: stnrv1.AdminConfig{
-		Name:     "stunnerd",
+		Name:     "testnamespace/stunnerd-ephemeral",
 		LogLevel: authTestLoglevel,
 	},
 	Auth: stnrv1.AuthConfig{
-		Type:  "longterm",
+		Type:  "ephemeral",
 		Realm: "",
 		Credentials: map[string]string{
 			"secret": "my-secret",

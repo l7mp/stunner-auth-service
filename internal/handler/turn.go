@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
-	"github.com/l7mp/stunner-auth-service/internal/store"
 	"github.com/l7mp/stunner-auth-service/pkg/types"
 )
 
 func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params types.GetTurnAuthParams) {
-	h.log.Info("GetTurnAuth: serving TURN auth token request", "params", params)
+	h.log.Infof("GetTurnAuth: serving TURN auth token request with params %s", params.String())
 
 	// build iceparams and convert to turn REST API response
 	svc := params.Service
@@ -28,9 +27,9 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 		Listener:  params.Listener,
 	}
 
-	if store.ConfigMaps.Len() == 0 {
+	if h.NumConfig() == 0 {
 		e := "no STUNner configuration available"
-		h.log.Info("GetTurnAuth: error", "message", e, "status", http.StatusInternalServerError)
+		h.log.Errorf("GetTurnAuth: error %s", e)
 		http.Error(w, e, http.StatusInternalServerError)
 		return
 	}
@@ -38,7 +37,7 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 	ice, err := h.getIceServerConf(iceParams)
 	if err != nil {
 		e := "could not generate TURN auth token"
-		h.log.Info("GetTurnAuth: error", "message", e, "error", err.error, "status", err.status)
+		h.log.Errorf("GetTurnAuth: error: %s", err.error)
 		http.Error(w, fmt.Sprintf("%s: %q", e, err.error), err.status)
 		return
 	}
@@ -54,14 +53,13 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 
 	if len(servers) == 0 {
 		e := "could not generate TURN auth token: no valid listener found"
-		h.log.Info("GetTurnAuth: error", "message", e, "status", http.StatusNotFound)
+		h.log.Infof("GetTurnAuth: error: %s", e)
 		http.Error(w, e, http.StatusNotFound)
 		return
 	}
 
 	if len(servers) != 1 {
-		h.log.Info("multiple TURN servers available: generating credentials only for the first one",
-			"servers", servers)
+		h.log.Info("multiple TURN servers available: generating credentials only for the first one")
 	}
 
 	turnAuthToken := types.TurnAuthenticationToken{
@@ -71,7 +69,7 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 		Uris:     servers[0].Urls,
 	}
 
-	h.log.Info("GetTurnAuth: ready", "response", turnAuthToken, "status", 200)
+	h.log.Infof("GetTurnAuth: response: %s", turnAuthToken.String())
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_ = json.NewEncoder(w).Encode(turnAuthToken)
