@@ -232,7 +232,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
 			// we must wait for the token to expire
-			time.Sleep(time.Duration(2) * time.Second)
+			time.Sleep(2 * time.Second)
 
 			assert.NotNil(t, iceConfig, "ICE config nil")
 			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
@@ -498,41 +498,43 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 	// </setup>
 
 	for _, testCase := range tests {
-		log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
+		t.Run(testCase.name, func(t *testing.T) {
+			log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
 
-		log.Info("storing config")
-		handler.Reset()
-		for _, c := range testCase.config {
-			handler.SetConfig(c.Admin.Name, c)
-		}
+			log.Info("storing config")
+			handler.Reset()
+			for _, c := range testCase.config {
+				handler.SetConfig(c.Admin.Name, c)
+			}
 
-		// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
-		if len(testCase.config) == 1 {
-			assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
-		}
+			// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
+			if len(testCase.config) == 1 {
+				assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
+			}
 
-		// wait so that the auth-server has comfortable time to start
-		time.Sleep(50 * time.Millisecond)
+			// wait so that the auth-server has comfortable time to start
+			time.Sleep(50 * time.Millisecond)
 
-		log.Info("calling ICE auth handler")
-		url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
-		req := httptest.NewRequest("GET", url, nil)
-		w := httptest.NewRecorder()
-		serv.GetIceAuth(w, req)
+			log.Info("calling ICE auth handler")
+			url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
+			req := httptest.NewRequest("GET", url, nil)
+			w := httptest.NewRecorder()
+			serv.GetIceAuth(w, req)
 
-		log.Info("testing results")
-		resp := w.Result()
-		body, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err, "read body")
+			log.Info("testing results")
+			resp := w.Result()
+			body, err := io.ReadAll(resp.Body)
+			assert.NoError(t, err, "read body")
 
-		assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
+			assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
 
-		iceConfig := types.IceConfig{}
-		if testCase.status == 200 {
-			assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
-			assert.NoError(t, json.Unmarshal(body, &iceConfig))
-		}
-		testCase.tester(t, &iceConfig, authHandler)
+			iceConfig := types.IceConfig{}
+			if testCase.status == 200 {
+				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
+				assert.NoError(t, json.Unmarshal(body, &iceConfig))
+			}
+			testCase.tester(t, &iceConfig, authHandler)
+		})
 	}
 }
 
@@ -598,46 +600,48 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 	authHandler := s.NewAuthHandler()
 
 	for _, testCase := range tests {
-		log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
+		t.Run(testCase.name, func(t *testing.T) {
+			log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
 
-		log.Info("storing config")
-		cd := []cdsserver.Config{}
-		for _, c := range testCase.config {
-			cd = append(cd, cdsserver.Config{Id: c.Admin.Name, Config: c})
-		}
-		assert.NoError(t, cdsServer.UpdateConfig(cd), "updating CDS server")
+			log.Info("storing config")
+			cd := []cdsserver.Config{}
+			for _, c := range testCase.config {
+				cd = append(cd, cdsserver.Config{Id: c.Admin.Name, Config: c})
+			}
+			assert.NoError(t, cdsServer.UpdateConfig(cd), "updating CDS server")
 
-		// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
-		if len(testCase.config) == 1 {
-			assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
-		}
+			// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
+			if len(testCase.config) == 1 {
+				assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
+			}
 
-		// wait so that the auth-server has comfortable time to start
-		time.Sleep(50 * time.Millisecond)
+			// wait so that the auth-server has comfortable time to start
+			time.Sleep(50 * time.Millisecond)
 
-		log.Info("calling ICE auth handler")
-		url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
-		req := httptest.NewRequest("GET", url, nil)
-		w := httptest.NewRecorder()
-		serv.GetIceAuth(w, req)
+			log.Info("calling ICE auth handler")
+			url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
+			req := httptest.NewRequest("GET", url, nil)
+			w := httptest.NewRecorder()
+			serv.GetIceAuth(w, req)
 
-		log.Info("testing results")
-		resp := w.Result()
-		body, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err, "read body")
+			log.Info("testing results")
+			resp := w.Result()
+			body, err := io.ReadAll(resp.Body)
+			assert.NoError(t, err, "read body")
 
-		assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
+			assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
 
-		iceConfig := types.IceConfig{}
-		if testCase.status == 200 {
-			assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
-			assert.NoError(t, json.Unmarshal(body, &iceConfig))
-		}
-		testCase.tester(t, &iceConfig, authHandler)
+			iceConfig := types.IceConfig{}
+			if testCase.status == 200 {
+				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
+				assert.NoError(t, json.Unmarshal(body, &iceConfig))
+			}
+			testCase.tester(t, &iceConfig, authHandler)
 
-		// remove all configs
-		cd = []cdsserver.Config{}
-		assert.NoError(t, cdsServer.UpdateConfig(cd), "delete all configs from CDS server")
-		time.Sleep(50 * time.Millisecond)
+			// remove all configs
+			cd = []cdsserver.Config{}
+			assert.NoError(t, cdsServer.UpdateConfig(cd), "delete all configs from CDS server")
+			time.Sleep(50 * time.Millisecond)
+		})
 	}
 }
