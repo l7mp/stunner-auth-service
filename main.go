@@ -72,8 +72,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Infof("Starting CDS client to server at %s", cdsAddr)
-	client, err := cdsclient.NewAllConfigsAPI(cdsAddr, loggerFactory.NewLogger("cds-client"))
+	log.Infof("Creating CDS client to server at %s", cdsAddr.Addr)
+	client, err := cdsclient.NewAllConfigsAPI(cdsAddr.Addr, loggerFactory.NewLogger("cds-client"))
 	if err != nil {
 		log.Errorf("Could not start CDS client: %s", err.Error())
 		os.Exit(1)
