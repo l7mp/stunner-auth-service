@@ -32,7 +32,8 @@ func (l *httpLogWriter) Write(p []byte) (int, error) {
 
 func main() {
 	os.Args[0] = "authd"
-	port := flag.IntP("port", "p", 8088, "HTTP port (defualt: 8088)")
+	port := flag.IntP("port", "p", stnrv1.DefaultAuthServicePort,
+		fmt.Sprintf("HTTP port (default: %d)", stnrv1.DefaultAuthServicePort))
 	level := flag.StringP("log", "l", "", "Log level (format: <scope>:<level>, overrides: PION_LOG_*, default: all:INFO)")
 	verbose := flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>")
 
