@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/github/license/l7mp/stunner-auth-service" /></a>
 </p>
 
-# A REST API for generating STUNner TURN authentication credentials 
+# A REST API for generating TURN authentication credentials for STUNner
 
 This service implements the [*REST API For Access To TURN
 Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-00) IETF draft
@@ -17,29 +17,26 @@ specification to assist in accessing the TURN services provided by
 that can be leveraged by *all* clients to make TURN relay connections. This mode, however, is not
 recommended for production use. Instead, the **STUNner authentication service** provided by this
 REST API can be used to generate per-client ephemeral (i.e. time-limited) credentials with a
-configurable expiration deadline. The usage of ephemeral credentials ensures that access to STUNner
+configurable expiration deadline. The use of ephemeral credentials ensures that access to STUNner
 can be controlled even if the credentials can be discovered by the user, as is the case in WebRTC
-where TURN credentials must be specified in JavaScript.
+where TURN credentials are usually negotiated in JavaScript.
 
 ## Description
 
-By providing a cloud-based relay service, STUNner ensures that a WebRTC media connection can be
-established via TURN even when one or both sides is incapable of a direct P2P connection, as it is
-the case when the media servers run inside a Kubernetes cluster.  However, as a gateway service,
-STUNner opens external access to the Kubernetes cluster.  Therefore, it is recommended to tightly
-control user access to the TURN services provided by STUNner.
+By providing a cloud-based relay service, STUNner ensures that WebRTC peers can establish a media connection via TURN even when one or both sides is incapable of a direct P2P connection. This is the case, for instance, when media servers are deployed in a Kubernetes cluster.  
 
-STUNner implements a mechanism to control access via long-term credentials that are provided as
+As a gateway service,
+STUNner opens external access to the Kubernetes cluster.  STUNner implements a mechanism to control user access via long-term credentials that are provided as
 part of the TURN protocol.  It is expected that these credentials will be kept secret; if the
 credentials are discovered, the TURN server could be used by unauthorized users or applications.
 However, in web applications, ensuring this secrecy is typically impossible.
 
-To address this problem, this service provides a REST API that can be used to retrieve TURN
+To address this problem, the STUNner authentication service provides a REST API that can be used to retrieve TURN
 credentials to access STUNner. The service watches the running STUNner dataplane configuration(s)
 from Kubernetes and automatically generates TURN credentials that will match the current
 [authentication settings](https://github.com/l7mp/stunner/blob/main/doc/AUTH.md) for STUNner. The
 REST API also allows to easily filter the returned TURN URIs to a selected set of STUNner Gateways:
-it is possible to return all public URIs per Kubernetes namespace, select a particular STUNner
+it is possible to return all public TURN URIs per Kubernetes namespace, select a particular STUNner
 Gateways within a namespace, or specify exactly which STUNner Gateway listener (say, TCP or UDP)
 the returned credential should apply to. This allows to direct users to access the Kubernetes
 cluster via a specific STUNner listener.
@@ -52,8 +49,8 @@ clients during session setup.
 
 Most users will have the Stunner authentication REST API server automatically deployed into their
 cluster by the Stunner [Helm charts](https://github.com/l7mp/stunner-helm). By default the
-authentication server is deployed into `stunner-system` namespace, it is exposed by the Service
-called `stunner-auth`, and it listens on port 8088 over plain HTTP, so you can reach it via the URL
+authentication server is deployed into the `stunner-system` namespace, exposed in the cluster by the Service
+called `stunner-auth`, and listens on port 8088 over plain HTTP. You can reach the auth service via the URL
 `http://stunner-auth.stunner-system:8088`. 
 
 Alternatively, you can deploy and test the REST API using the packaged static manifests as follows.
@@ -63,7 +60,7 @@ kubectl create namespace stunner-system
 kubectl apply -f deploy/kubernetes-stunner-auth-service.yaml
 ```
 
-The REST server can also be fired up locally for quick testing, provided that a usable valid
+The REST server can also be fired up locally for quick testing, provided that a valid
 kubeconfig is available for a remote cluster. The server can discover the remote CDS server to load
 STUNner configs.
 
@@ -74,7 +71,7 @@ go build -o authd main.go
 
 If a CDS service is available on a well-known address, then that address can also be explicitly
 specified on the command line. The below will use the CDS server exposed at `127.0.0.1:13478` and
-sets the log level to maximum.
+set the log level to maximum.
 
 ``` console
 ./authd --cds-server-address="127.0.0.1:13478" -l all:TRACE
@@ -84,13 +81,11 @@ sets the log level to maximum.
 
 For the purposes of this test, we set up the [Simple
 tunnel](https://github.com/l7mp/stunner/blob/main/docs/examples/simple-tunnel/README.md) STUNner
-tutorial and loaded the necessary Kubernetes manifests for demonstration purposes. The sample
+tutorial and loaded the necessary Kubernetes manifests for demonstration purposes. Make sure [`stunnerctl`](https://github.com/l7mp/stunner/blob/main/cmd/stunnerctl/README.md) has been properly installed. The sample
 configuration defines 2 Gateways with the below config:
 
 ``` console
-cd <stunner>
-go build -o stunnerctl cmd/stunnerctl/main.go
-./stunnerctl -n stunner config 
+bin/stunnerctl -n stunner config 
 Gateway: stunner/tcp-gateway (loglevel: "all:INFO")
 Authentication type: static, username/password: user-1/pass-1
 Listeners:
@@ -117,9 +112,7 @@ the tutorial, which is available at `localhost:8088`:
 ```
 
 Note that in reality the authentication service should run in your Kubernetes cluster and it should
-be available only to clients *inside* the same cluster. In particular, in most installations the
-REST API will be exposed via the Kubernetes `ClusterIP` Service called
-`stunner-auth.stunner-system`. This helps prevent security problems arising from unauthenticated
+be available only to clients *inside* the same cluster. This helps prevent security problems arising from unauthenticated
 external clients obtaining valid TURN credentials for a running cluster.
 
 **Warning:** Never expose the STUNner authentication service externally. Since the REST API is not
@@ -150,7 +143,7 @@ The parameter `service=turn` is mandatory, the rest of the parameters are option
 API For Access To TURN
 Services*](https://datatracker.ietf.org/doc/html/draft-uberti-behave-turn-rest-00) IETF draft
 specification to understand the fields of the returned JSON or the [OpenAPI
-specs](api/stunner.yaml) packaged with the repo. Note also that `jq` is used above only to
+specs](api/stunner.yaml) packaged with the repo. Make sure to customers the TTL: when the credential express STUNner will deny any access, even for the the clientsv do still have active connections. This may cause live sessions to be disconnected. Note also that `jq` is used above only to
 pretty-print the response JSON, feel free to remove it.
 
 Due to a limitation of the REST API spec, the authentication service can generate the TURN access
@@ -215,7 +208,7 @@ curl -s "http://localhost:8088/ice?service=turn&namespace=stunner&gateway=udp-ga
 
 The request parameters defined for the TURN REST API (namely, `username` and `ttl`) can be used for
 this API too. In addition, the parameter `iceTransportPolicy=relay` will force clients to skip
-generating host and server-reflexive ICE candidates (which will not work with STUNner anyway) and
+generating host and server-reflexive ICE candidates and
 use TURN for connecting unconditionally. This will make client connections much faster.
 
 ## API
@@ -246,6 +239,7 @@ A request to the `getTurnAuth` API endpoint includes the following parameters, s
   be set as well.
 - `listener`: consider only the specified listener on the given STUNner Gateway; if `listener` is
   set then `namespace` and `gateway` must be set too.
+  - `ttl`: the requested lifetime of the credential. Default is one day make sure to customize.
 
 ### Response
 
