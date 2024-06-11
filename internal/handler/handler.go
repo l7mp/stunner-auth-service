@@ -42,16 +42,16 @@ func (h *Handler) Start(ctx context.Context) {
 				return
 			case c := <-h.conf:
 				if c.Admin.Name == "" {
-					h.log.Error("skipping received config contains invalid gateway id")
+					h.log.Error("Skipping received config contains invalid gateway id")
 					continue
 				}
 
 				if cdsclient.IsConfigDeleted(c) {
-					h.log.Debugf("config deleted for gateway %q", c.Admin.Name)
+					h.log.Debugf("Config deleted for gateway %q", c.Admin.Name)
 					h.store.Delete(c.Admin.Name)
 				}
 
-				h.log.Debugf("new config available for gateway %q: %s",
+				h.log.Debugf("New config available for gateway %q: %s",
 					c.Admin.Name, c.String())
 				h.store.Store(c.Admin.Name, c)
 			}

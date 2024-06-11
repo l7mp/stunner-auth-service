@@ -88,7 +88,7 @@ func main() {
 	log.Info("Starting auth request handler")
 	handler, err := handler.NewHandler(conf, loggerFactory.NewLogger("auth-svc"))
 	if err != nil {
-		log.Errorf("could not start authentication server: %s", err.Error())
+		log.Errorf("Could not start authentication server: %s", err.Error())
 		os.Exit(1)
 	}
 	handler.Start(ctx)

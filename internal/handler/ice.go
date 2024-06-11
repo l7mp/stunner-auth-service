@@ -69,7 +69,7 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 
 		ice, err := h.getIceServerConfForStunnerConf(params, c)
 		if err != nil {
-			h.log.Errorf("cannot generate ICE server config for Stunner config: %s",
+			h.log.Errorf("Cannot generate ICE server config for Stunner config: %s",
 				err.Error())
 			return true
 		}
@@ -108,25 +108,25 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		// format is namespace/gateway/listener
 		tokens := strings.Split(l.Name, "/")
 		if len(tokens) != 3 {
-			h.log.Errorf(`invalid Listener %q: name should be "namespace/gateway/listener"`,
+			h.log.Errorf(`Invalid Listener %q: name should be "namespace/gateway/listener"`,
 				l.Name)
 			continue
 		}
 		namespace, gateway, listener := tokens[0], tokens[1], tokens[2]
 
-		h.log.Debugf("considering Listener: namespace: %s, gateway: %s, listener: %s", namespace,
+		h.log.Debugf("Considering Listener: namespace: %s, gateway: %s, listener: %s", namespace,
 			gateway, listener)
 
 		// filter
 		if params.Namespace != nil && *params.Namespace != namespace {
-			h.log.Debugf("ignoring listener due to gateway namespace mismatch: "+
+			h.log.Debugf("Ignoring listener due to gateway namespace mismatch: "+
 				"required-namespace: %s, gateway-namespace: %s",
 				*params.Namespace, namespace)
 			continue
 		}
 
 		if params.Namespace != nil && params.Gateway != nil && *params.Gateway != gateway {
-			h.log.Debugf("ignoring listener due to gateway name mismatch: "+
+			h.log.Debugf("Ignoring listener due to gateway name mismatch: "+
 				"required-name: %s, gateway-name: %s",
 				*params.Gateway, gateway)
 			continue
@@ -134,7 +134,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		if params.Namespace != nil && params.Gateway != nil && params.Listener != nil &&
 			*params.Listener != listener {
-			h.log.Debugf("ignoring listener due to listener name mismatch: "+
+			h.log.Debugf("Ignoring listener due to listener name mismatch: "+
 				"required-name: %s, listener-name: %s",
 				*params.Listener, listener)
 			continue
@@ -142,7 +142,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		uri, err := stunner.GetUriFromListener(&l)
 		if err != nil {
-			h.log.Errorf("cannot generate URI for listener: %s", err.Error())
+			h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
 			continue
 		}
 
