@@ -19,6 +19,7 @@ jobs:
   push_to_registry:
     name: Push Docker image to DockerHub
     needs: run_tests
+    if: github.repository == 'l7mp/stunner-auth-service'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
