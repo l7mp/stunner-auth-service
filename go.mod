@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/go-logr/zapr v1.3.0
 	github.com/gorilla/mux v1.8.1
-	github.com/l7mp/stunner v0.21.0
+	github.com/l7mp/stunner v1.0.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/pion/logging v0.2.2
 	github.com/pion/transport/v2 v2.2.4
