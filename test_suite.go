@@ -20,6 +20,8 @@ const (
 
 	loglevel = zapcore.ErrorLevel
 	// loglevel = zapcore.Level(-10)
+
+	testCDSAddr = ":63487"
 )
 
 var (

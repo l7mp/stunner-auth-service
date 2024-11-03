@@ -58,15 +58,19 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 		return
 	}
 
-	if len(servers) != 1 {
-		h.log.Info("multiple TURN servers available: generating credentials only for the first one")
+	// collect URIs
+	uris := []string{}
+	for _, s := range servers {
+		for _, uri := range *s.Urls {
+			uris = append(uris, uri)
+		}
 	}
 
 	turnAuthToken := types.TurnAuthenticationToken{
 		Username: servers[0].Username,
 		Password: servers[0].Credential,
 		Ttl:      &duration,
-		Uris:     servers[0].Urls,
+		Uris:     &uris,
 	}
 
 	h.log.Infof("GetTurnAuth: response: %s", turnAuthToken.String())

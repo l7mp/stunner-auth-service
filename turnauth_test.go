@@ -29,51 +29,46 @@ import (
 	"github.com/l7mp/stunner-auth-service/pkg/types"
 )
 
-type iceAuthTestCase struct {
+type turnAuthTestCase struct {
 	name   string
 	config []*stnrv1.StunnerConfig
 	params string
 	status int
-	tester func(t *testing.T, iceAuth *types.IceConfig, authHandler a12n.AuthHandler)
+	tester func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler)
 }
 
-var iceAuthTestCases = []iceAuthTestCase{
+var turnAuthTestCases = []turnAuthTestCase{
 	{
 		name:   "empty config",
 		config: []*stnrv1.StunnerConfig{},
 		params: "service=turn",
 		status: http.StatusInternalServerError,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
-			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
+				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
@@ -81,39 +76,33 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=dummy",
 		status: http.StatusBadRequest,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
-
 	{
 		name:   "static - username set",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
 			// useless: no username override in static mode
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "credential nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "credential ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
-			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
+				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
@@ -121,31 +110,26 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
 			// useless: no ttl in response
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "credential nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "credential ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
-			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
+				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
@@ -153,33 +137,28 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
+			assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username valid")
+			assert.NotNil(t, turnAuthToken.Password, "credential nil")
+			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
-			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
-			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
+				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
@@ -187,40 +166,36 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=dummy",
 		status: 400,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "ephemeral -- username set",
 		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
+			assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username valid")
+			assert.NotNil(t, turnAuthToken.Password, "credential nil")
+			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
-			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
-			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
+				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
@@ -228,32 +203,27 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
 			// we must wait for the token to expire
 			time.Sleep(2 * time.Second)
 
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.Error(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username invalid")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
+			assert.Error(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
+			assert.NotNil(t, turnAuthToken.Password, "credential nil")
+			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
-			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
+			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+			_, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
 				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
@@ -261,48 +231,29 @@ var iceAuthTestCases = []iceAuthTestCase{
 	{
 		name:   "static - multiple configs, no filter",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
-		params: "service=turn&username=dummy",
+		params: "service=turn",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 2, "ICE servers len")
-
-			// config 1
-			iceAuth := iceServers[0]
-			if iceAuth.Username == nil || *iceAuth.Username != "user1" {
-				iceAuth = iceServers[1]
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			if *turnAuthToken.Username == "user1" {
+				assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+				assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			} else {
+				assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
+				assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
+				passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
+				assert.NoError(t, err, "GetLongTermCredential")
+				assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
 			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
-			assert.Len(t, uris, 4, "URI len")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 8, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
-
-			// config 2
-			iceAuth = iceServers[1]
-			if iceAuth.Username == nil || *iceAuth.Username == "user1" {
-				iceAuth = iceServers[0]
-			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
-			assert.NoError(t, err, "GetLongTermCredential")
-			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris = *iceAuth.Urls
-			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
@@ -315,14 +266,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 3, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TCP URI")
@@ -334,14 +281,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 2, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
@@ -352,14 +295,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 1, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 		},
@@ -369,37 +308,20 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - multiple configs, namespace filter",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 2, "ICE servers len")
-
-			iceAuth := iceServers[0]
-			if iceAuth.Username == nil || *iceAuth.Username != "user1" {
-				iceAuth = iceServers[1]
-			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
-			assert.Len(t, uris, 3, "URI len")
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 6, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
-
-			iceAuth = iceServers[1]
-			if iceAuth.Username == nil || *iceAuth.Username == "user1" {
-				iceAuth = iceServers[0]
-			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris = *iceAuth.Urls
-			assert.Len(t, uris, 3, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
@@ -410,29 +332,12 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 2, "ICE servers len")
-
-			iceAuth := iceServers[0]
-			if iceAuth.Username == nil || *iceAuth.Username != "user1" {
-				iceAuth = iceServers[1]
-			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
-			assert.Len(t, uris, 2, "URI len")
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 4, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
-
-			iceAuth = iceServers[1]
-			if iceAuth.Username == nil || *iceAuth.Username == "user1" {
-				iceAuth = iceServers[0]
-			}
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris = *iceAuth.Urls
-			assert.Len(t, uris, 2, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.5:3478?transport=udp", "UDP URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 		},
@@ -442,15 +347,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
 
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			uris := *iceAuth.Urls
+			uris := *turnAuthToken.Uris
 			assert.Len(t, uris, 1, "URI len")
 			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "UDP URI")
 		},
@@ -460,15 +360,15 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=dummy",
 		status: 404,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 }
 
-func TestICEAuth(t *testing.T) { testICE(t, iceAuthTestCases) }
-func TestICECDS(t *testing.T)  { testICECDS(t, iceAuthTestCases) }
+func TestTURNAuth(t *testing.T)    { testTURNAuth(t, turnAuthTestCases) }
+func TestTURNAuthCDS(t *testing.T) { testTurnAuthCDS(t, turnAuthTestCases) }
 
 // test with manually injected configs
-func testICE(t *testing.T, tests []iceAuthTestCase) {
+func testTURNAuth(t *testing.T, tests []turnAuthTestCase) {
 	// <setup>
 	lim := test.TimeOut(time.Second * 120)
 	defer lim.Stop()
@@ -513,11 +413,11 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 			// wait so that the auth-server has comfortable time to start
 			time.Sleep(50 * time.Millisecond)
 
-			log.Info("calling ICE auth handler")
-			url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
+			log.Info("calling TURN auth handler")
+			url := fmt.Sprintf("http://example.com/?%s", testCase.params)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
-			serv.GetIceAuth(w, req)
+			serv.GetTurnAuth(w, req)
 
 			log.Info("testing results")
 			resp := w.Result()
@@ -526,18 +426,18 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 
 			assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
 
-			iceConfig := types.IceConfig{}
+			turnAuthToken := types.TurnAuthenticationToken{}
 			if testCase.status == 200 {
 				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
-				assert.NoError(t, json.Unmarshal(body, &iceConfig))
+				assert.NoError(t, json.Unmarshal(body, &turnAuthToken))
 			}
-			testCase.tester(t, &iceConfig, authHandler)
+			testCase.tester(t, &turnAuthToken, authHandler)
 		})
 	}
 }
 
 // test through the CDS client/server pipeline
-func testICECDS(t *testing.T, tests []iceAuthTestCase) {
+func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 	// <setup>
 	lim := test.TimeOut(time.Second * 120)
 	defer lim.Stop()
@@ -616,11 +516,11 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 			// wait so that the auth-server has comfortable time to start
 			time.Sleep(50 * time.Millisecond)
 
-			log.Info("calling ICE auth handler")
-			url := fmt.Sprintf("http://example.com/ice?%s", testCase.params)
+			log.Info("calling TURN auth handler")
+			url := fmt.Sprintf("http://example.com/?%s", testCase.params)
 			req := httptest.NewRequest("GET", url, nil)
 			w := httptest.NewRecorder()
-			serv.GetIceAuth(w, req)
+			serv.GetTurnAuth(w, req)
 
 			log.Info("testing results")
 			resp := w.Result()
@@ -629,12 +529,12 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 
 			assert.Equal(t, testCase.status, resp.StatusCode, "HTTP status")
 
-			iceConfig := types.IceConfig{}
+			turnAuthToken := types.TurnAuthenticationToken{}
 			if testCase.status == 200 {
 				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
-				assert.NoError(t, json.Unmarshal(body, &iceConfig))
+				assert.NoError(t, json.Unmarshal(body, &turnAuthToken))
 			}
-			testCase.tester(t, &iceConfig, authHandler)
+			testCase.tester(t, &turnAuthToken, authHandler)
 
 			// remove all configs
 			cd = []cdsserver.Config{}
