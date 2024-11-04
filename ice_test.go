@@ -29,8 +29,6 @@ import (
 	"github.com/l7mp/stunner-auth-service/pkg/types"
 )
 
-const testCDSAddr = ":63487"
-
 type iceAuthTestCase struct {
 	name   string
 	config []*stnrv1.StunnerConfig
