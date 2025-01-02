@@ -24,6 +24,7 @@ import (
 	"github.com/l7mp/stunner/pkg/logger"
 
 	// "github.com/l7mp/stunner-auth-service/pkg/client"
+	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/internal/handler"
 	"github.com/l7mp/stunner-auth-service/pkg/server"
 	"github.com/l7mp/stunner-auth-service/pkg/types"
@@ -32,6 +33,7 @@ import (
 type turnAuthTestCase struct {
 	name   string
 	config []*stnrv1.StunnerConfig
+	envPublicAddr string
 	params string
 	status int
 	tester func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler)
@@ -374,6 +376,68 @@ var turnAuthTestCases = []turnAuthTestCase{
 		status: 404,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
+	{
+		name:   "static - public IP set via URL parameter",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		params: "service=turn&public-addr=1.3.5.7",
+		status: 200,
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=udp", "DTLS URI")
+		},
+	},
+	{
+		name:   "static - public IP set via env var",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		envPublicAddr: "2.4.6.8",
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:2.4.6.8:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:2.4.6.8:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:2.4.6.8:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:2.4.6.8:3479?transport=udp", "DTLS URI")
+		},
+	},
+	{
+		name:   "static - public IP set via URL parameter takes precedence over env var",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		envPublicAddr: "2.4.6.8",
+		params: "service=turn&public-addr=1.3.5.7",
+		status: 200,
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=udp", "DTLS URI")
+		},
+	},
 }
 
 func TestTURNAuth(t *testing.T)    { testTURNAuth(t, turnAuthTestCases) }
@@ -410,6 +474,12 @@ func testTURNAuth(t *testing.T, tests []turnAuthTestCase) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
+
+			if testCase.envPublicAddr != "" {
+				oldPublicAddr := config.PublicAddr
+				config.PublicAddr = testCase.envPublicAddr
+				t.Cleanup(func() { config.PublicAddr = oldPublicAddr })
+			}
 
 			log.Info("storing config")
 			handler.Reset()
@@ -512,6 +582,12 @@ func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			log.Info(fmt.Sprintf("---------------- Test: %s ----------------", testCase.name))
+
+			if testCase.envPublicAddr != "" {
+				oldPublicAddr := config.PublicAddr
+				config.PublicAddr = testCase.envPublicAddr
+				t.Cleanup(func() { config.PublicAddr = oldPublicAddr })
+			}
 
 			log.Info("storing config")
 			cd := []cdsserver.Config{}

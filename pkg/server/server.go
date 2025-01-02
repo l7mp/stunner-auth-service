@@ -102,6 +102,14 @@ func (siw *ServerInterfaceWrapper) GetTurnAuth(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// ------------- Optional query parameter "public-addr" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "public-addr", r.URL.Query(), &params.PublicAddr)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "public-addr", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTurnAuth(w, r, params)
 	}))
@@ -183,6 +191,14 @@ func (siw *ServerInterfaceWrapper) GetIceAuth(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameter("form", true, false, "listener", r.URL.Query(), &params.Listener)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "listener", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "public-addr" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "public-addr", r.URL.Query(), &params.PublicAddr)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "public-addr", Err: err})
 		return
 	}
 

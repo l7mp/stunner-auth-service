@@ -64,6 +64,11 @@ spec:
           imagePullPolicy: Always
           # image: localhost/l7mp/stunner-auth-server
           # imagePullPolicy: Never
+          env:
+            # Overrides the public IP of the Gateway. Useful when STUNner cannot
+            # determine a valid public IP
+            - name: STUNNER_PUBLIC_ADDR
+              value: ""
           command: [ "./manager" ]
           # args: ["-zap-log-level","info"]
           # max loglevel
