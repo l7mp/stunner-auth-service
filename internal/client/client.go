@@ -249,6 +249,22 @@ func NewGetTurnAuthRequest(server string, params *GetTurnAuthParams) (*http.Requ
 
 		}
 
+		if params.PublicAddr != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "public-addr", runtime.ParamLocationQuery, *params.PublicAddr); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -397,6 +413,22 @@ func NewGetIceAuthRequest(server string, params *GetIceAuthParams) (*http.Reques
 		if params.Listener != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "listener", runtime.ParamLocationQuery, *params.Listener); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PublicAddr != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "public-addr", runtime.ParamLocationQuery, *params.PublicAddr); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err

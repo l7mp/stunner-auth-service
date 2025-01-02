@@ -197,6 +197,20 @@ this API too. In addition, the parameter `iceTransportPolicy=relay` will force c
 generating host and server-reflexive ICE candidates and
 use TURN for connecting unconditionally. This will make client connections much faster.
 
+### Ensuring valid Gateway public IP addresses
+
+In certain scenarios, STUNner is unable to determine the public IP for a Gateway
+(e.g. private Kubernetes clusters without LoadBalancer and node ExternalIPs). In
+these cases the public IP can be manually set using the following methods, listed in
+order of priority (from highest to lowest):
+
+- Setting the [`public-addr` URL parameter](#request) when requesting configurations.
+- Setting the `STUNNER_PUBLIC_ADDR` environment variable (see the
+    "stunner-auth-server" container in the [Kubernetes manifest](deploy/kubernetes-stunner-auth-service.yaml)).
+
+If multiple methods are used, the one with the highest priority will override the rest
+(e.g., setting the `public-addr` parameter always takes precedence).
+
 ## API
 
 The REST API exposes two API endpoints: `getTurnAuth` can be called to obtain a TURN authentication
@@ -226,6 +240,7 @@ A request to the `getTurnAuth` API endpoint includes the following parameters, s
 - `listener`: consider only the specified listener on the given STUNner Gateway; if `listener` is
   set then `namespace` and `gateway` must be set too.
 - `ttl`: the requested lifetime of the credential. Default is one day, make sure to customize.
+- `public-addr`: override the public IP address with the provided value.
 
 ### Response
 

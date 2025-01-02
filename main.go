@@ -17,6 +17,7 @@ import (
 	cdsclient "github.com/l7mp/stunner/pkg/config/client"
 	"github.com/l7mp/stunner/pkg/logger"
 
+	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/internal/handler"
 	"github.com/l7mp/stunner-auth-service/pkg/server"
 )
@@ -58,6 +59,11 @@ func main() {
 
 	loggerFactory := logger.NewLoggerFactory(logLevel)
 	log := loggerFactory.NewLogger("authd")
+
+	if envPublicAddr, present := os.LookupEnv("STUNNER_PUBLIC_ADDR"); present {
+		config.PublicAddr = envPublicAddr
+		log.Infof("Using STUNner public address from environment: %s", envPublicAddr)
+	}
 
 	conf := make(chan *stnrv1.StunnerConfig, 10)
 	defer close(conf)

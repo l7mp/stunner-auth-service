@@ -25,6 +25,7 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 		Namespace: params.Namespace,
 		Gateway:   params.Gateway,
 		Listener:  params.Listener,
+		PublicAddr:  params.PublicAddr,
 	}
 
 	if h.NumConfig() == 0 {

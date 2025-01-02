@@ -77,6 +77,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: public-addr
+          in: query
+          description: Override the public IP address with the provided value (optional)
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Successful operation
@@ -148,6 +154,12 @@ paths:
           description: |
             Generate TURN URIs only for the specified listener of a given Gateway (optional); if
             listener is set then namespace and gateway must be set as well
+          required: false
+          schema:
+            type: string
+        - name: public-addr
+          in: query
+          description: Override the public IP address with the provided value (optional)
           required: false
           schema:
             type: string
