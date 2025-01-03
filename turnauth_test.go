@@ -374,6 +374,26 @@ var turnAuthTestCases = []turnAuthTestCase{
 		status: 404,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
+	{
+		name:   "static - public IP set via URL parameter",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		params: "service=turn&public-ip=1.3.5.7",
+		status: 200,
+		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
+			assert.NotNil(t, turnAuthToken.Username, "username nil")
+			assert.Equal(t, "user1", *turnAuthToken.Username, "username nil")
+			assert.NotNil(t, turnAuthToken.Password, "password nil")
+			assert.Equal(t, "pass1", *turnAuthToken.Password, "password ok")
+			assert.NotNil(t, turnAuthToken.Uris, "URIs nil")
+			uris := *turnAuthToken.Uris
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:1.3.5.7:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=udp", "DTLS URI")
+		},
+	},
 }
 
 func TestTURNAuth(t *testing.T)    { testTURNAuth(t, turnAuthTestCases) }

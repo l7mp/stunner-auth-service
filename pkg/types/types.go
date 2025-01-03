@@ -68,6 +68,9 @@ type GetTurnAuthParams struct {
 	// Listener Generate TURN URIs only for the specified listener of a given Gateway (optional); if
 	// listener is set then namespace and gateway must be set as well
 	Listener *string `form:"listener,omitempty" json:"listener,omitempty"`
+
+	// PublicIp Override the public IP address with the provided value (optional)
+	PublicIp *string `form:"public-ip,omitempty" json:"public-ip,omitempty"`
 }
 
 // GetTurnAuthParamsService defines parameters for GetTurnAuth.
@@ -100,6 +103,9 @@ type GetIceAuthParams struct {
 	// Listener Generate TURN URIs only for the specified listener of a given Gateway (optional); if
 	// listener is set then namespace and gateway must be set as well
 	Listener *string `form:"listener,omitempty" json:"listener,omitempty"`
+
+	// PublicIp Override the public IP address with the provided value (optional)
+	PublicIp *string `form:"public-ip,omitempty" json:"public-ip,omitempty"`
 }
 
 // GetIceAuthParamsService defines parameters for GetIceAuth.

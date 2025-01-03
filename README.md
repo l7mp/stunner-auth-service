@@ -226,6 +226,7 @@ A request to the `getTurnAuth` API endpoint includes the following parameters, s
 - `listener`: consider only the specified listener on the given STUNner Gateway; if `listener` is
   set then `namespace` and `gateway` must be set too.
 - `ttl`: the requested lifetime of the credential. Default is one day, make sure to customize.
+- `public-ip`: override the public IP address with the provided value
 
 ### Response
 
