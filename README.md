@@ -23,23 +23,9 @@ where TURN credentials are usually negotiated in JavaScript.
 
 ## Description
 
-By providing a cloud-based relay service, STUNner ensures that WebRTC peers can establish a media connection via TURN even when one or both sides is incapable of a direct P2P connection. This is the case, for instance, when media servers are deployed in a Kubernetes cluster.  
+By providing a cloud-based relay service, STUNner ensures that WebRTC peers can establish a media connection via TURN even when one or both sides is incapable of a direct P2P connection. This is the case, for instance, when media servers are deployed in a Kubernetes cluster.  As a gateway service, STUNner opens external access to the Kubernetes cluster.  STUNner implements a mechanism to control user access via long-term credentials that are provided as part of the TURN protocol.  It is expected that these credentials will be kept secret; if the credentials are discovered, the TURN server could be used by unauthorized users or applications.  However, in web applications, ensuring this secrecy is typically impossible.
 
-As a gateway service,
-STUNner opens external access to the Kubernetes cluster.  STUNner implements a mechanism to control user access via long-term credentials that are provided as
-part of the TURN protocol.  It is expected that these credentials will be kept secret; if the
-credentials are discovered, the TURN server could be used by unauthorized users or applications.
-However, in web applications, ensuring this secrecy is typically impossible.
-
-To address this problem, the STUNner authentication service provides a REST API that can be used to retrieve TURN
-credentials to access STUNner. The service watches the running STUNner dataplane configuration(s)
-from Kubernetes and automatically generates TURN credentials that will match the current
-[authentication settings](https://github.com/l7mp/stunner/blob/main/doc/AUTH.md) for STUNner. The
-REST API also allows to easily filter the returned TURN URIs to a selected set of STUNner Gateways:
-it is possible to return all public TURN URIs per Kubernetes namespace, select a particular STUNner
-Gateways within a namespace, or specify exactly which STUNner Gateway listener (say, TCP or UDP)
-the returned credential should apply to. This allows to direct users to access the Kubernetes
-cluster via a specific STUNner listener.
+To address this problem, the STUNner authentication service provides a REST API that can be used to retrieve TURN credentials to access STUNner. The service watches the running STUNner dataplane configuration(s) from Kubernetes and automatically generates TURN credentials that will match the current [authentication settings](https://github.com/l7mp/stunner/blob/main/doc/AUTH.md) for STUNner. The REST API also allows to easily filter the returned TURN URIs to a selected set of STUNner Gateways: it is possible to return all public TURN URIs per Kubernetes namespace, select a particular STUNner Gateways within a namespace, or specify exactly which STUNner Gateway listener (say, TCP or UDP) the returned credential should apply to. This allows to direct users to access the Kubernetes cluster via a specific STUNner listener.
 
 The main use of this service is by a WebRTC application server to generate an [ICE server
 configuration](https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer) to be returned to
