@@ -31,12 +31,12 @@ import (
 )
 
 type iceAuthTestCase struct {
-	name   string
-	config []*stnrv1.StunnerConfig
+	name          string
+	config        []*stnrv1.StunnerConfig
 	envPublicAddr string
-	params string
-	status int
-	tester func(t *testing.T, iceAuth *types.IceConfig, authHandler a12n.AuthHandler)
+	params        string
+	status        int
+	tester        func(t *testing.T, iceAuth *types.IceConfig, authHandler a12n.AuthHandler)
 }
 
 var iceAuthTestCases = []iceAuthTestCase{
@@ -490,11 +490,11 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
-		name:   "static - public IP set via env var",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		name:          "static - public IP set via env var",
+		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
-		params: "service=turn",
-		status: 200,
+		params:        "service=turn",
+		status:        200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
 			assert.NotNil(t, iceConfig, "ICE config nil")
 			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
@@ -516,11 +516,11 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
-		name:   "static - public IP set via URL parameter takes precedence over env var",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		name:          "static - public IP set via URL parameter takes precedence over env var",
+		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
-		params: "service=turn&public-addr=1.3.5.7",
-		status: 200,
+		params:        "service=turn&public-addr=1.3.5.7",
+		status:        200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
 			assert.NotNil(t, iceConfig, "ICE config nil")
 			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
@@ -571,7 +571,6 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 		LogLevel: authTestLoglevel,
 	})
 	defer s.Close()
-	authHandler := s.NewAuthHandler()
 	// </setup>
 
 	for _, testCase := range tests {
@@ -616,6 +615,8 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
 				assert.NoError(t, json.Unmarshal(body, &iceConfig))
 			}
+
+			authHandler := s.NewAuthHandler()
 			testCase.tester(t, &iceConfig, authHandler)
 		})
 	}
@@ -632,11 +633,6 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 
 	loggerFactory := logger.NewLoggerFactory(authTestLoglevel)
 	log := loggerFactory.NewLogger("auth-test")
-
-	// make config deletions superfast
-	deleteDelay := cdsserver.ConfigDeletionUpdateDelay
-	cdsserver.ConfigDeletionUpdateDelay = time.Millisecond
-	defer func() { cdsserver.ConfigDeletionUpdateDelay = deleteDelay }()
 
 	conf := make(chan *stnrv1.StunnerConfig, 10)
 	defer close(conf)
@@ -663,7 +659,7 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 		os.Exit(1)
 	}
 
-	if err := client.Watch(ctx, conf); err != nil {
+	if err := client.Watch(ctx, conf, false); err != nil {
 		log.Errorf("Could not watch CDS server: %s", err.Error())
 		os.Exit(1)
 	}
@@ -680,7 +676,6 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 		LogLevel: authTestLoglevel,
 	})
 	defer s.Close()
-	authHandler := s.NewAuthHandler()
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
@@ -695,7 +690,9 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 			log.Info("storing config")
 			cd := []cdsserver.Config{}
 			for _, c := range testCase.config {
-				cd = append(cd, cdsserver.Config{Id: c.Admin.Name, Config: c})
+				namespace, name, ok := cdsserver.NamespacedName(c.Admin.Name)
+				assert.True(t, ok)
+				cd = append(cd, cdsserver.Config{Namespace: namespace, Name: name, Config: c})
 			}
 			assert.NoError(t, cdsServer.UpdateConfig(cd), "updating CDS server")
 
@@ -725,6 +722,8 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 				assert.Equal(t, "application/json; charset=UTF-8", resp.Header.Get("Content-Type"), "HTTP Content-Type")
 				assert.NoError(t, json.Unmarshal(body, &iceConfig))
 			}
+
+			authHandler := s.NewAuthHandler()
 			testCase.tester(t, &iceConfig, authHandler)
 
 			// remove all configs

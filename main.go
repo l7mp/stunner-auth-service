@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	golog "log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -86,7 +87,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := client.Watch(ctx, conf); err != nil {
+	if err := client.Watch(ctx, conf, false); err != nil {
 		log.Errorf("Could not watch CDS server: %s", err.Error())
 		os.Exit(1)
 	}
@@ -101,16 +102,22 @@ func main() {
 
 	router := server.HandlerWithOptions(handler, server.GorillaServerOptions{})
 
-	log.Infof("Starting HTTP REST server at port %d", *port)
+	addr := fmt.Sprintf(":%d", *port)
+	log.Infof("Starting HTTP REST server at %s", addr)
 	srv := &http.Server{
-		Addr:     fmt.Sprintf(":%d", *port),
+		Addr:     addr,
 		Handler:  router,
 		ErrorLog: golog.New(&httpLogWriter{loggerFactory.NewLogger("http-server")}, "", 0),
 	}
 	defer srv.Close()
 
+	c, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Errorf("Could not open server socket: %s", err.Error())
+		os.Exit(1)
+	}
 	go func() {
-		if err = srv.ListenAndServe(); err != nil {
+		if err = srv.Serve(c); err != nil {
 			log.Errorf("HTTP server error: %s", err.Error())
 			os.Exit(1)
 		}
@@ -118,6 +125,6 @@ func main() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	<-sigs
 
+	<-sigs
 }
