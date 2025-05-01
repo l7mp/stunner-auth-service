@@ -124,6 +124,10 @@ github.com/l7mp/stunner v1.0.1-0.20250411173520-70878e66ce6c h1:oF0tlKTsnc/DKan9
 github.com/l7mp/stunner v1.0.1-0.20250411173520-70878e66ce6c/go.mod h1:CtEp8Sfjs4bqOcmIYI7KFv5HRgfkxT2lGEr35FA/UAM=
 github.com/l7mp/stunner v1.0.1-0.20250415085743-efdf090700a2 h1:/j31W/vRJSPwvxXhVpx+z0kQTHnKAsmRfU1tD1k6TuQ=
 github.com/l7mp/stunner v1.0.1-0.20250415085743-efdf090700a2/go.mod h1:CtEp8Sfjs4bqOcmIYI7KFv5HRgfkxT2lGEr35FA/UAM=
+github.com/l7mp/stunner v1.0.1-0.20250501094549-5fd41bce91cb h1:mJAyNyJx65km0DxaeJZSvyS/uIEyNoApjW5eT/EiNLM=
+github.com/l7mp/stunner v1.0.1-0.20250501094549-5fd41bce91cb/go.mod h1:CtEp8Sfjs4bqOcmIYI7KFv5HRgfkxT2lGEr35FA/UAM=
+github.com/l7mp/stunner v1.0.1-0.20250501095913-1baab6ab497c h1:NmFydPehbKL9S7XYiSYgF5Dn0Kc8IbaZaayKkSSoKlA=
+github.com/l7mp/stunner v1.0.1-0.20250501095913-1baab6ab497c/go.mod h1:CtEp8Sfjs4bqOcmIYI7KFv5HRgfkxT2lGEr35FA/UAM=
 github.com/l7mp/turn/v4 v4.0.1-0.20250129175420-8076eb06efe0 h1:R0MimMcwDc8QxNuDXvgT9kxw36P/9JRXZX3Bzws4+C4=
 github.com/l7mp/turn/v4 v4.0.1-0.20250129175420-8076eb06efe0/go.mod h1:c6QgUVz1BtrQvEOxO4HvSBhY/HgNpiWDcOaDZXUyH2w=
 github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de h1:9TO3cAIGXtEhnIaL+V+BEER86oLrvS+kWobKpbJuye0=

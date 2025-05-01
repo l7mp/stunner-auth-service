@@ -33,6 +33,7 @@ import (
 type iceAuthTestCase struct {
 	name          string
 	config        []*stnrv1.StunnerConfig
+	patch         func(*stnrv1.StunnerConfig)
 	envPublicAddr string
 	params        string
 	status        int
@@ -541,6 +542,107 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:1.3.5.7:3479?transport=udp", "DTLS URI")
 		},
 	},
+	{
+		name:   "static - no public IP",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv1.StunnerConfig) {
+			c.Listeners[0].PublicAddr = ""
+			c.Listeners[1].PublicAddr = ""
+		},
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, iceConfig, "ICE config nil")
+			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			iceAuth := iceServers[0]
+			assert.NotNil(t, iceAuth, "ICE auth token nil")
+			assert.NotNil(t, iceAuth.Username, "username nil")
+			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
+			assert.NotNil(t, iceAuth.Credential, "credential nil")
+			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
+			assert.NotNil(t, iceAuth.Urls, "URLs nil")
+			uris := *iceAuth.Urls
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:127.0.0.1:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:127.0.0.1:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
+		},
+	},
+	{
+		name:   "static - no IP",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv1.StunnerConfig) {
+			c.Listeners[0].PublicAddr = ""
+			c.Listeners[0].Addr = ""
+			c.Listeners[1].PublicAddr = ""
+			c.Listeners[1].Addr = ""
+		},
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, iceConfig, "ICE config nil")
+			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			iceAuth := iceServers[0]
+			assert.NotNil(t, iceAuth, "ICE auth token nil")
+			assert.NotNil(t, iceAuth.Username, "username nil")
+			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
+			assert.NotNil(t, iceAuth.Credential, "credential nil")
+			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
+			assert.NotNil(t, iceAuth.Urls, "URLs nil")
+			uris := *iceAuth.Urls
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
+		},
+	},
+	// relay-address-discovery
+	{
+		name:   "relay-address-discovery placeholder handling",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv1.StunnerConfig) {
+			c.Listeners[0].Addr = "__node_address_placeholder"
+			c.Listeners[0].PublicAddr = ""
+			c.Listeners[1].Addr = "__node_address_placeholder"
+			c.Listeners[1].PublicAddr = "dummy.example.io"
+			c.Listeners[2].PublicAddr = "5.4.3.2" // say, nodeport
+			c.Listeners[3].Addr = "dummy.example.io"
+			c.Listeners[3].PublicAddr = ""
+		},
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, iceConfig, "ICE config nil")
+			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			iceAuth := iceServers[0]
+			assert.NotNil(t, iceAuth, "ICE auth token nil")
+			assert.NotNil(t, iceAuth.Username, "username nil")
+			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
+			assert.NotNil(t, iceAuth.Credential, "credential nil")
+			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
+			assert.NotNil(t, iceAuth.Urls, "URLs nil")
+			uris := *iceAuth.Urls
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:dummy.example.io:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:5.4.3.2:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:dummy.example.io:3479?transport=udp", "DTLS URI")
+
+			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
+				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			assert.True(t, ok, "authHandler key ok")
+			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
+				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+		},
+	},
 }
 
 func TestICEAuth(t *testing.T) { testICE(t, iceAuthTestCases) }
@@ -586,6 +688,10 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 			log.Info("storing config")
 			handler.Reset()
 			for _, c := range testCase.config {
+				if testCase.patch != nil {
+					c = c.DeepCopy()
+					testCase.patch(c)
+				}
 				handler.SetConfig(c.Admin.Name, c)
 			}
 
@@ -692,6 +798,10 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 			for _, c := range testCase.config {
 				namespace, name, ok := cdsserver.NamespacedName(c.Admin.Name)
 				assert.True(t, ok)
+				if testCase.patch != nil {
+					c = c.DeepCopy()
+					testCase.patch(c)
+				}
 				cd = append(cd, cdsserver.Config{Namespace: namespace, Name: name, Config: c})
 			}
 			assert.NoError(t, cdsServer.UpdateConfig(cd), "updating CDS server")
