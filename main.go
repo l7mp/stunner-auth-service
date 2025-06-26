@@ -109,7 +109,7 @@ func main() {
 		Handler:  router,
 		ErrorLog: golog.New(&httpLogWriter{loggerFactory.NewLogger("http-server")}, "", 0),
 	}
-	defer srv.Close()
+	defer srv.Close() //nolint:errcheck
 
 	c, err := net.Listen("tcp", addr)
 	if err != nil {

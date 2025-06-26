@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+//nolint:unused
 const (
 	// normal error level
 	authTestLoglevel = "all:ERROR"
@@ -24,12 +25,14 @@ const (
 	testCDSAddr = ":63487"
 )
 
+//nolint:unused
 var (
 	certPem, keyPem, _ = stunner.GenerateSelfSignedKey()
 	certPem64          = base64.StdEncoding.EncodeToString(certPem)
 	keyPem64           = base64.StdEncoding.EncodeToString(keyPem)
 )
 
+//nolint:unused
 func setupLogger() logr.Logger {
 	zapConfig := zap.NewProductionEncoderConfig()
 	zapConfig.EncodeTime = zapcore.RFC3339NanoTimeEncoder
@@ -40,6 +43,7 @@ func setupLogger() logr.Logger {
 	return zapr.NewLogger(zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel)))
 }
 
+//nolint:unused
 var staticAuthConfig = stnrv1.StunnerConfig{
 	ApiVersion: "v1",
 	Admin: stnrv1.AdminConfig{
@@ -95,6 +99,7 @@ var staticAuthConfig = stnrv1.StunnerConfig{
 	Clusters: []stnrv1.ClusterConfig{},
 }
 
+//nolint:unused
 var ephemeralAuthConfig = stnrv1.StunnerConfig{
 	ApiVersion: "v1",
 	Admin: stnrv1.AdminConfig{

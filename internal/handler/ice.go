@@ -187,7 +187,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 	atype, err := stnrv1.NewAuthType(authType)
 	if err != nil {
 		return nil, &hErr{
-			fmt.Errorf("Internal server error: %w", err),
+			fmt.Errorf("internal server error: %w", err),
 			http.StatusInternalServerError}
 	}
 
@@ -197,7 +197,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		p, passFound := auth.Credentials["password"]
 		if !userFound || !passFound {
 			return nil, &hErr{
-				errors.New("Invalid STUNner config: no username or password " +
+				errors.New("invalid STUNner config: no username or password " +
 					"(auth: plaintext)"),
 				http.StatusInternalServerError,
 			}
@@ -209,7 +209,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		secret, secretFound := auth.Credentials["secret"]
 		if !secretFound {
 			return nil, &hErr{
-				errors.New("Invalid STUNner config: no shared secret (auth: longterm)"),
+				errors.New("invalid STUNner config: no shared secret (auth: longterm)"),
 				http.StatusInternalServerError}
 		}
 		username = a12n.GenerateTimeWindowedUsername(time.Now(), ttl, userid)
@@ -217,7 +217,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		p, err := a12n.GetLongTermCredential(username, secret)
 		if err != nil {
 			return nil, &hErr{
-				fmt.Errorf("Cannot generate longterm credential: %w", err),
+				fmt.Errorf("cannot generate longterm credential: %w", err),
 				http.StatusInternalServerError}
 		}
 		password = p
