@@ -20,9 +20,9 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
       - name: Download modules
@@ -43,6 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     steps:
+      - uses: actions/checkout@v6
       - name: Check security vulnerabilites
         uses: anchore/scan-action@v7
         with:
