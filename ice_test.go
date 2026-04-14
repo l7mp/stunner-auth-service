@@ -13,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/transport/v2/test"
+	"github.com/pion/transport/v4/test"
+	"github.com/pion/turn/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner"
@@ -72,8 +73,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
@@ -112,8 +112,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
@@ -144,8 +143,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
@@ -165,7 +163,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.NotNil(t, iceAuth, "ICE auth token nil")
 			assert.NotNil(t, iceAuth.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
+			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -178,8 +176,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
@@ -206,7 +203,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.NotNil(t, iceAuth, "ICE auth token nil")
 			assert.NotNil(t, iceAuth.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
+			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -219,8 +216,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
@@ -243,7 +239,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.NotNil(t, iceAuth, "ICE auth token nil")
 			assert.NotNil(t, iceAuth.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.Error(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username invalid")
+			assert.Error(t, checkTimeWindowedUsername(*iceAuth.Username), "username invalid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -256,8 +252,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, _, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
 	},
@@ -298,7 +293,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.NotNil(t, iceAuth, "ICE auth token nil")
 			assert.NotNil(t, iceAuth.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*iceAuth.Username), "username valid")
+			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -636,13 +631,26 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:5.4.3.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:dummy.example.io:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*iceAuth.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
 				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
+}
+
+
+func callAuthHandler(authHandler a12n.AuthHandler, username, realm string, srcAddr net.Addr) (string, []byte, bool) {
+	return authHandler(&turn.RequestAttributes{
+		Username: username,
+		Realm:    realm,
+		SrcAddr:  srcAddr,
+	})
+}
+
+func checkTimeWindowedUsername(username string) error {
+	_, err := a12n.CheckTimeWindowedUsername(username)
+	return err
 }
 
 func TestICEAuth(t *testing.T) { testICE(t, iceAuthTestCases) }

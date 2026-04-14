@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/transport/v2/test"
+	"github.com/pion/transport/v4/test"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner"
@@ -66,8 +66,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
 				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
@@ -100,8 +99,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
 				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
@@ -127,8 +125,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
 				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
@@ -143,7 +140,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
 			assert.NotNil(t, turnAuthToken.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username valid")
+			assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username valid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -156,8 +153,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
 				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
@@ -180,7 +176,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 
 			assert.NotNil(t, turnAuthToken.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
-			assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username valid")
+			assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username valid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -193,8 +189,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			key, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
 				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
@@ -212,7 +207,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
 			assert.NotNil(t, turnAuthToken.Username, "username nil")
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
-			assert.Error(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
+			assert.Error(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
 			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
@@ -225,8 +220,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, ok := authHandler(*turnAuthToken.Username, stnrv1.DefaultRealm,
-				&net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, _, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
 	},
@@ -253,7 +247,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 
 			} else {
 				assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
-				assert.NoError(t, a12n.CheckTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
+				assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
 				passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 				assert.NoError(t, err, "GetLongTermCredential")
 				assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
