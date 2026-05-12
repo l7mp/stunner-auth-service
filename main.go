@@ -37,6 +37,7 @@ func main() {
 	port := flag.IntP("port", "p", stnrv1.DefaultAuthServicePort,
 		fmt.Sprintf("HTTP port (default: %d)", stnrv1.DefaultAuthServicePort))
 	level := flag.StringP("log", "l", "", "Log level (format: <scope>:<level>, overrides: PION_LOG_*, default: all:INFO)")
+	logFormat := flag.String("log-format", "text", `Log output format: "text" (default) or "json"`)
 	verbose := flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>")
 
 	// Kubernetes config flags
@@ -58,7 +59,13 @@ func main() {
 		logLevel = *level
 	}
 
-	loggerFactory := logger.NewLoggerFactory(logLevel)
+	var loggerFactory logger.LoggerFactory
+	switch *logFormat {
+	case "json":
+		loggerFactory = logger.NewJSONLoggerFactory(logLevel)
+	default:
+		loggerFactory = logger.NewLoggerFactory(logLevel)
+	}
 	log := loggerFactory.NewLogger("authd")
 
 	if envPublicAddr, present := os.LookupEnv("STUNNER_PUBLIC_ADDR"); present {

@@ -677,8 +677,7 @@ func testICE(t *testing.T, tests []iceAuthTestCase) {
 	// starting a Stunner instance to use its authenticator
 	log.Info("creating a stunnerd")
 	s := stunner.NewStunner(stunner.Options{
-		DryRun:   true,
-		LogLevel: authTestLoglevel,
+		DryRun: true,
 	})
 	defer s.Close()
 	// </setup>
@@ -786,8 +785,7 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 	// starting a Stunner instance to use its authenticator
 	log.Info("creating a stunnerd")
 	s := stunner.NewStunner(stunner.Options{
-		DryRun:   true,
-		LogLevel: authTestLoglevel,
+		DryRun: true,
 	})
 	defer s.Close()
 

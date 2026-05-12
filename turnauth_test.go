@@ -458,8 +458,7 @@ func testTURNAuth(t *testing.T, tests []turnAuthTestCase) {
 	// starting a Stunner instance to use its authenticator
 	log.Info("creating a stunnerd")
 	s := stunner.NewStunner(stunner.Options{
-		DryRun:   true,
-		LogLevel: authTestLoglevel,
+		DryRun: true,
 	})
 	defer s.Close()
 	// </setup>
@@ -563,8 +562,7 @@ func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 	// starting a Stunner instance to use its authenticator
 	log.Info("creating a stunnerd")
 	s := stunner.NewStunner(stunner.Options{
-		DryRun:   true,
-		LogLevel: authTestLoglevel,
+		DryRun: true,
 	})
 	defer s.Close()
 
