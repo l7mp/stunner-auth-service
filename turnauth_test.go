@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/pion/transport/v4/test"
+	"github.com/pion/turn/v5"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner"
@@ -37,6 +38,46 @@ type turnAuthTestCase struct {
 	params        string
 	status        int
 	tester        func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler)
+}
+
+func newTurnAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
+	if conf == nil {
+		return nil
+	}
+
+	authType, err := stnrv1.NewAuthType(conf.Auth.Type)
+	if err != nil || authType == stnrv1.AuthTypeNone {
+		return nil
+	}
+
+	auth := conf.Auth
+
+	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
+		switch authType {
+		case stnrv1.AuthTypeStatic:
+			configuredUser := auth.Credentials["username"]
+			configuredPass := auth.Credentials["password"]
+			if ra.Username != configuredUser {
+				return "", nil, false
+			}
+			key := a12n.GenerateAuthKey(configuredUser, auth.Realm, configuredPass)
+			return ra.Username, key, true
+		case stnrv1.AuthTypeEphemeral:
+			secret := auth.Credentials["secret"]
+			userID, err := a12n.CheckTimeWindowedUsername(ra.Username)
+			if err != nil {
+				return "", nil, false
+			}
+			password, err := a12n.GetLongTermCredential(ra.Username, secret)
+			if err != nil {
+				return "", nil, false
+			}
+			key := a12n.GenerateAuthKey(ra.Username, auth.Realm, password)
+			return userID, key, true
+		default:
+			return "", nil, false
+		}
+	}
 }
 
 var turnAuthTestCases = []turnAuthTestCase{
@@ -479,9 +520,12 @@ func testTURNAuth(t *testing.T, tests []turnAuthTestCase) {
 				handler.SetConfig(c.Admin.Name, c)
 			}
 
-			// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
+			var authHandler a12n.AuthHandler
+
+			// we only create a test auth handler for single-config tests
 			if len(testCase.config) == 1 {
 				assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
+				authHandler = newTurnAuthHandler(testCase.config[0])
 			}
 
 			// wait so that the auth-server has comfortable time to start
@@ -506,7 +550,6 @@ func testTURNAuth(t *testing.T, tests []turnAuthTestCase) {
 				assert.NoError(t, json.Unmarshal(body, &turnAuthToken))
 			}
 
-			authHandler := s.NewAuthHandler()
 			testCase.tester(t, &turnAuthToken, authHandler)
 		})
 	}
@@ -585,9 +628,12 @@ func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 			}
 			assert.NoError(t, cdsServer.UpdateConfig(cd), "updating CDS server")
 
-			// we do not use the Stunner auth handler for multi-config tests: no need to reconcile
+			var authHandler a12n.AuthHandler
+
+			// we only create a test auth handler for single-config tests
 			if len(testCase.config) == 1 {
 				assert.NoError(t, s.Reconcile(testCase.config[0]), "starting server")
+				authHandler = newTurnAuthHandler(testCase.config[0])
 			}
 
 			// wait so that the auth-server has comfortable time to start
@@ -612,7 +658,6 @@ func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 				assert.NoError(t, json.Unmarshal(body, &turnAuthToken))
 			}
 
-			authHandler := s.NewAuthHandler()
 			testCase.tester(t, &turnAuthToken, authHandler)
 
 			// remove all configs
