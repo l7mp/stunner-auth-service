@@ -578,6 +578,26 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
+		name:   "static - IPv6 public addr via URL parameter yields RFC 7065 bracketed URIs",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		params: "service=turn&public-addr=2001:db8::1",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, iceConfig, "ICE config nil")
+			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			iceAuth := iceServers[0]
+			assert.NotNil(t, iceAuth.Urls, "URLs nil")
+			uris := *iceAuth.Urls
+			assert.Len(t, uris, 4, "URI len")
+			assert.Contains(t, uris, "turn:[2001:db8::1]:3478?transport=udp", "UDP URI")
+			assert.Contains(t, uris, "turn:[2001:db8::1]:3478?transport=tcp", "TCP URI")
+			assert.Contains(t, uris, "turns:[2001:db8::1]:3479?transport=tcp", "TLS URI")
+			assert.Contains(t, uris, "turns:[2001:db8::1]:3479?transport=udp", "DTLS URI")
+		},
+	},
+	{
 		name:   "static - no public IP",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		patch: func(c *stnrv1.StunnerConfig) {
