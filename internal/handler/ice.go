@@ -148,13 +148,13 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 			continue
 		}
 
-		uri, err := stunner.GetUriFromListener(&l)
+		u, err := stunner.NewURIFromListener(&l)
 		if err != nil {
 			h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
 			continue
 		}
 
-		uris = append(uris, uri)
+		uris = append(uris, u.AsRFC7065String())
 	}
 
 	if len(uris) == 0 {
