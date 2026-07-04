@@ -598,6 +598,26 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
+		name:   "static - public_addresses yields an ICE URI per address",
+		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv1.StunnerConfig) {
+			c.Listeners[0].PublicAddrs = []string{"1.2.3.4", "2001:db8::1"}
+		},
+		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			iceAuth := iceServers[0]
+			assert.NotNil(t, iceAuth.Urls, "URLs nil")
+			uris := *iceAuth.Urls
+			assert.Len(t, uris, 2, "one URI per public address")
+			assert.Contains(t, uris, "turn:1.2.3.4:3478?transport=udp", "IPv4 URI")
+			assert.Contains(t, uris, "turn:[2001:db8::1]:3478?transport=udp", "IPv6 URI")
+		},
+	},
+	{
 		name:   "static - no public IP",
 		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
 		patch: func(c *stnrv1.StunnerConfig) {

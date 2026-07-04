@@ -117,12 +117,20 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		h.log.Debugf("Considering Listener: namespace: %s, gateway: %s, listener: %s", namespace,
 			gateway, listener)
 
-		if params.PublicAddr != nil {
-			l.PublicAddr = *params.PublicAddr
-			h.log.Debugf("Using public address from request: %s", l.PublicAddr)
-		} else if config.PublicAddr != "" {
-			l.PublicAddr = config.PublicAddr
-			h.log.Debugf("Using public address from environment: %s", l.PublicAddr)
+		// Determine the public addresses to advertise for this listener, in precedence order:
+		// request param > env override > listener public_addresses > listener public_address. An
+		// empty result lets NewURIFromListener fall back to the listener address.
+		pubAddrs := l.PublicAddrs
+		if len(pubAddrs) == 0 {
+			pubAddrs = []string{l.PublicAddr}
+		}
+		switch {
+		case params.PublicAddr != nil:
+			pubAddrs = []string{*params.PublicAddr}
+			h.log.Debugf("Using public address from request: %s", *params.PublicAddr)
+		case config.PublicAddr != "":
+			pubAddrs = []string{config.PublicAddr}
+			h.log.Debugf("Using public address from environment: %s", config.PublicAddr)
 		}
 
 		// filter
@@ -148,13 +156,16 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 			continue
 		}
 
-		u, err := stunner.NewURIFromListener(&l)
-		if err != nil {
-			h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
-			continue
+		for _, addr := range pubAddrs {
+			lc := l
+			lc.PublicAddr = addr
+			u, err := stunner.NewURIFromListener(&lc)
+			if err != nil {
+				h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
+				continue
+			}
+			uris = append(uris, u.AsRFC7065String())
 		}
-
-		uris = append(uris, u.AsRFC7065String())
 	}
 
 	if len(uris) == 0 {
