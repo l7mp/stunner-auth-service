@@ -1,7 +1,5 @@
 # Build the auth binary
 FROM golang:1.26-alpine as builder
-ARG TARGETOS
-ARG TARGETARCH
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -13,21 +11,26 @@ RUN go mod download
 
 # Copy the go source
 COPY main.go main.go
+COPY Makefile Makefile
 COPY internal/ internal/
 COPY api/ api/
-COPY pkg/ pkg
+COPY pkg/ pkg/
+
+RUN apk add --no-cache make
 
 RUN apkArch="$(apk --print-arch)"; \
       case "$apkArch" in \
         aarch64) export GOARCH='arm64' ;; \
         *) export GOARCH='amd64' ;; \
       esac; \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o authd .
+    export CGO_ENABLED=0; \
+    export GOOS=linux; \
+    make build-bin
 
 ###########
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/authd .
+COPY --from=builder /workspace/bin/authd .
 USER 65532:65532
 
 EXPOSE 8080/tcp
