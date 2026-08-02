@@ -18,14 +18,14 @@ func (h *Handler) GetTurnAuth(w http.ResponseWriter, r *http.Request, params typ
 	// build iceparams and convert to turn REST API response
 	svc := params.Service
 	iceParams := types.GetIceAuthParams{
-		Service:   (*types.GetIceAuthParamsService)(&svc),
-		Username:  params.Username,
-		Ttl:       params.Ttl,
-		Key:       params.Key,
-		Namespace: params.Namespace,
-		Gateway:   params.Gateway,
-		Listener:  params.Listener,
-		PublicAddr:  params.PublicAddr,
+		Service:    (*types.GetIceAuthParamsService)(&svc),
+		Username:   params.Username,
+		Ttl:        params.Ttl,
+		Key:        params.Key,
+		Namespace:  params.Namespace,
+		Gateway:    params.Gateway,
+		Listener:   params.Listener,
+		PublicAddr: params.PublicAddr,
 	}
 
 	if h.NumConfig() == 0 {
