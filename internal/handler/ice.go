@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/l7mp/stunner"
-	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
-	a12n "github.com/l7mp/stunner/pkg/authentication"
+	"github.com/l7mp/stunner/v2"
+	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	a12n "github.com/l7mp/stunner/v2/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/pkg/types"

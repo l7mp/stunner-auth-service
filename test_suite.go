@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/zapr"
-	"github.com/l7mp/stunner"
-	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
+	"github.com/l7mp/stunner/v2"
+	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

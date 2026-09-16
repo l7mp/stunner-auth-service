@@ -1,5 +1,5 @@
 # Build the auth binary
-FROM golang:1.26-alpine as builder
+FROM golang:1.27-alpine as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests

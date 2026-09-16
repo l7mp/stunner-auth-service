@@ -14,9 +14,9 @@ import (
 	flag "github.com/spf13/pflag"
 	cliopt "k8s.io/cli-runtime/pkg/genericclioptions"
 
-	stnrv1 "github.com/l7mp/stunner/pkg/apis/v1"
-	cdsclient "github.com/l7mp/stunner/pkg/config/client"
-	"github.com/l7mp/stunner/pkg/logger"
+	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	cdsclient "github.com/l7mp/stunner/v2/pkg/config/client"
+	"github.com/l7mp/stunner/v2/pkg/logger"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/internal/handler"
