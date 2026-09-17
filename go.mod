@@ -6,12 +6,12 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/gorilla/mux v1.8.1
-	github.com/l7mp/stunner/v2 v2.0.0-20260916184441-1d195003cd78
+	github.com/l7mp/stunner/v2 v2.0.0-20260917193605-03351ef32aa1
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/pion/logging v0.2.5-0.20260405224506-902883ec686b
 	github.com/pion/transport/v4 v4.0.2
-	github.com/pion/turn/v5 v5.1.2
+	github.com/pion/turn/v5 v5.1.3-0.20260917120801-d17ad27a4f3c
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
@@ -117,8 +117,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-// l7mp/stunner carries this same replace for the TURN client's channel accessors that
-// pion/turn#592 has not merged, and a replace in a dependency is ignored, so each module
-// importing stunner needs its own. Drop everywhere once #592 merges.
-replace github.com/pion/turn/v5 => github.com/l7mp/turn/v5 v5.0.0-20260916145932-d5b107404d26
