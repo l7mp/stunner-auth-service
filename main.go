@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/l7mp/stunner/v2/pkg/utils/discovery"
+
 	"github.com/pion/logging"
 	flag "github.com/spf13/pflag"
 	cliopt "k8s.io/cli-runtime/pkg/genericclioptions"
@@ -45,7 +47,7 @@ func main() {
 	k8sFlags.AddFlags(flag.CommandLine)
 
 	// CDS server discovery flags
-	cdsFlags := cdsclient.NewCDSConfigFlags()
+	cdsFlags := discovery.NewCDSConfigFlags()
 	cdsFlags.AddFlags(flag.CommandLine)
 
 	flag.Parse()
@@ -80,7 +82,7 @@ func main() {
 	defer cancel()
 
 	log.Info("Obtaining CDS server address")
-	cdsAddr, err := cdsclient.DiscoverK8sCDSServer(ctx, k8sFlags, cdsFlags,
+	cdsAddr, err := discovery.DiscoverK8sCDSServer(ctx, k8sFlags, cdsFlags,
 		loggerFactory.NewLogger("k8s-discover"))
 	if err != nil {
 		log.Errorf("Could not find CDS server: %s", err.Error())
