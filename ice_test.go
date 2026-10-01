@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner/v2"
-	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
 	a12n "github.com/l7mp/stunner/v2/pkg/authentication"
 	cdsclient "github.com/l7mp/stunner/v2/pkg/config/client"
 	cdsserver "github.com/l7mp/stunner/v2/pkg/config/server"
@@ -33,21 +33,21 @@ import (
 
 type iceAuthTestCase struct {
 	name          string
-	config        []*stnrv1.StunnerConfig
-	patch         func(*stnrv1.StunnerConfig)
+	config        []*stnrv2.StunnerConfig
+	patch         func(*stnrv2.StunnerConfig)
 	envPublicAddr string
 	params        string
 	status        int
 	tester        func(t *testing.T, iceAuth *types.IceConfig, authHandler a12n.AuthHandler)
 }
 
-func newICEAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
+func newICEAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 	if conf == nil {
 		return nil
 	}
 
-	authType, err := stnrv1.NewAuthType(conf.Auth.Type)
-	if err != nil || authType == stnrv1.AuthTypeNone {
+	authType, err := stnrv2.NewAuthType(conf.Auth.Type)
+	if err != nil || authType == stnrv2.AuthTypeNone {
 		return nil
 	}
 
@@ -55,7 +55,7 @@ func newICEAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 
 	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
 		switch authType {
-		case stnrv1.AuthTypeStatic:
+		case stnrv2.AuthTypeStatic:
 			configuredUser := auth.Credentials["username"]
 			configuredPass := auth.Credentials["password"]
 			if ra.Username != configuredUser {
@@ -63,7 +63,7 @@ func newICEAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 			}
 			key := a12n.GenerateAuthKey(configuredUser, auth.Realm, configuredPass)
 			return ra.Username, key, true
-		case stnrv1.AuthTypeEphemeral:
+		case stnrv2.AuthTypeEphemeral:
 			secret := auth.Credentials["secret"]
 			userID, err := a12n.CheckTimeWindowedUsername(ra.Username)
 			if err != nil {
@@ -84,14 +84,14 @@ func newICEAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 var iceAuthTestCases = []iceAuthTestCase{
 	{
 		name:   "empty config",
-		config: []*stnrv1.StunnerConfig{},
+		config: []*stnrv2.StunnerConfig{},
 		params: "service=turn",
 		status: http.StatusInternalServerError,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -113,15 +113,35 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+		},
+	},
+	{
+		name:   "static - a listener feeding no TURN server has no URI",
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
+			c.Listeners = append(c.Listeners, stnrv2.ListenerConfig{
+				Name: "testnamespace/testgateway/plain", Protocol: "UDP", PublicAddr: "1.2.3.9",
+				PublicPort: 5000, Servers: []string{"testnamespace/l4"}})
+			c.Servers = append(c.Servers, stnrv2.ServerConfig{Name: "testnamespace/l4",
+				Type: stnrv2.ServerTypeL4.String()})
+		},
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len")
+			uris := *iceServers[0].Urls
+			assert.Len(t, uris, 4, "URI len: only the TURN listeners")
+			assert.NotContains(t, uris, "turn:1.2.3.9:5000?transport=udp", "no URI for the plain listener")
 		},
 	},
 	{
 		name:   "static - dummy service",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=dummy",
 		status: http.StatusBadRequest,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
@@ -129,7 +149,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 
 	{
 		name:   "static - username set",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -152,15 +172,15 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "static -- ttl set",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -183,15 +203,15 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- basic",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -216,22 +236,22 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- dummy service",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=dummy",
 		status: 400,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "ephemeral -- username set",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -256,15 +276,15 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- username, ttl set",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -292,13 +312,13 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, _, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, _, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
 	},
 	{
 		name:   "static - multiple configs, no filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -350,7 +370,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	// gateway filters
 	{
 		name:   "static - single config, namespace filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -369,7 +389,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - single config, gateway filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -387,7 +407,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - single config, listener filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -404,14 +424,14 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - single config, restrictive filter, no result errs",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - multiple configs, namespace filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -445,7 +465,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, gateway filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -477,7 +497,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, listener filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -495,14 +515,14 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, restrictive filter, no result errs",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=dummy",
 		status: 404,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - public IP set via URL parameter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&public-addr=1.3.5.7",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -527,7 +547,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:          "static - public IP set via env var",
-		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config:        []*stnrv2.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
 		params:        "service=turn",
 		status:        200,
@@ -553,7 +573,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:          "static - public IP set via URL parameter takes precedence over env var",
-		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config:        []*stnrv2.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
 		params:        "service=turn&public-addr=1.3.5.7",
 		status:        200,
@@ -579,7 +599,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - IPv6 public addr via URL parameter yields RFC 7065 bracketed URIs",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&public-addr=2001:db8::1",
 		status: 200,
 		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
@@ -599,8 +619,8 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - public_addresses yields an ICE URI per address",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
-		patch: func(c *stnrv1.StunnerConfig) {
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners[0].PublicAddrs = []string{"1.2.3.4", "2001:db8::1"}
 		},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
@@ -619,8 +639,8 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - no public IP",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
-		patch: func(c *stnrv1.StunnerConfig) {
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners[0].PublicAddr = ""
 			c.Listeners[1].PublicAddr = ""
 		},
@@ -648,8 +668,8 @@ var iceAuthTestCases = []iceAuthTestCase{
 	},
 	{
 		name:   "static - no IP",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
-		patch: func(c *stnrv1.StunnerConfig) {
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners[0].PublicAddr = ""
 			c.Listeners[0].Addr = ""
 			c.Listeners[1].PublicAddr = ""
@@ -680,8 +700,8 @@ var iceAuthTestCases = []iceAuthTestCase{
 	// relay-address-discovery
 	{
 		name:   "relay-address-discovery placeholder handling",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
-		patch: func(c *stnrv1.StunnerConfig) {
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners[0].Addr = "__node_address_placeholder"
 			c.Listeners[0].PublicAddr = ""
 			c.Listeners[1].Addr = "__node_address_placeholder"
@@ -711,10 +731,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Contains(t, uris, "turns:5.4.3.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:dummy.example.io:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*iceAuth.Username,
-				stnrv1.DefaultRealm, *iceAuth.Credential), "auth handler ok")
+				stnrv2.DefaultRealm, *iceAuth.Credential), "auth handler ok")
 		},
 	},
 }
@@ -828,7 +848,7 @@ func testICECDS(t *testing.T, tests []iceAuthTestCase) {
 	loggerFactory := logger.NewLoggerFactory(authTestLoglevel)
 	log := loggerFactory.NewLogger("auth-test")
 
-	conf := make(chan *stnrv1.StunnerConfig, 10)
+	conf := make(chan *stnrv2.StunnerConfig, 10)
 	defer close(conf)
 
 	ctx, cancel := context.WithCancel(context.Background())

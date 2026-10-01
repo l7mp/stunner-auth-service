@@ -16,7 +16,7 @@ import (
 	flag "github.com/spf13/pflag"
 	cliopt "k8s.io/cli-runtime/pkg/genericclioptions"
 
-	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
 	cdsclient "github.com/l7mp/stunner/v2/pkg/config/client"
 	"github.com/l7mp/stunner/v2/pkg/logger"
 
@@ -36,8 +36,8 @@ func (l *httpLogWriter) Write(p []byte) (int, error) {
 
 func main() {
 	os.Args[0] = "authd"
-	port := flag.IntP("port", "p", stnrv1.DefaultAuthServicePort,
-		fmt.Sprintf("HTTP port (default: %d)", stnrv1.DefaultAuthServicePort))
+	port := flag.IntP("port", "p", stnrv2.DefaultAuthServicePort,
+		fmt.Sprintf("HTTP port (default: %d)", stnrv2.DefaultAuthServicePort))
 	level := flag.StringP("log", "l", "", "Log level (format: <scope>:<level>, overrides: PION_LOG_*, default: all:INFO)")
 	logFormat := flag.String("log-format", "text", `Log output format: "text" (default) or "json"`)
 	verbose := flag.BoolP("verbose", "v", false, "Verbose logging, identical to <-l all:DEBUG>")
@@ -52,7 +52,7 @@ func main() {
 
 	flag.Parse()
 
-	logLevel := stnrv1.DefaultLogLevel
+	logLevel := stnrv2.DefaultLogLevel
 	if *verbose {
 		logLevel = "all:DEBUG"
 	}
@@ -75,7 +75,7 @@ func main() {
 		log.Infof("Using STUNner public address from environment: %s", envPublicAddr)
 	}
 
-	conf := make(chan *stnrv1.StunnerConfig, 10)
+	conf := make(chan *stnrv2.StunnerConfig, 10)
 	defer close(conf)
 
 	ctx, cancel := context.WithCancel(context.Background())

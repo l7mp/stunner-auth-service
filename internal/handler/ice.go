@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/l7mp/stunner/v2"
-	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
 	a12n "github.com/l7mp/stunner/v2/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
@@ -62,7 +61,7 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 
 	// try to generate an iceconfig for each config in the store
 	h.store.Range(func(key, value any) bool {
-		c, ok := value.(*stnrv1.StunnerConfig)
+		c, ok := value.(*stnrv2.StunnerConfig)
 		if !ok {
 			return false
 		}
@@ -98,7 +97,7 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 	return iceConfig, nil
 }
 
-func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv1.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
+func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv2.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
 	h.log.Debugf("getIceServerConfForStunnerConf: considering Stunner config %s", stunnerConfig.String())
 
 	// should we generate an ICE server config for this stunner config?
@@ -116,6 +115,13 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		h.log.Debugf("Considering Listener: namespace: %s, gateway: %s, listener: %s", namespace,
 			gateway, listener)
+
+		// only a listener feeding a TURN server has a TURN URI
+		if s, err := stunnerConfig.GetServerConfig(l.FirstServer()); err != nil ||
+			s.Type != stnrv2.ServerTypeTURN.String() {
+			h.log.Debugf("Ignoring listener %q: it feeds no TURN server", l.Name)
+			continue
+		}
 
 		// Determine the public addresses to advertise for this listener, in precedence order:
 		// request param > env override > listener public_addresses > listener public_address. An
@@ -159,12 +165,12 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		for _, addr := range pubAddrs {
 			lc := l
 			lc.PublicAddr = addr
-			u, err := stunner.NewURIFromListener(&lc)
+			u, err := stnrv2.NewURIFromListener(&lc)
 			if err != nil {
 				h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
 				continue
 			}
-			uris = append(uris, u.AsRFC7065String())
+			uris = append(uris, u.String())
 		}
 	}
 
@@ -195,7 +201,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		authType = "longterm"
 	}
 
-	atype, err := stnrv1.NewAuthType(authType)
+	atype, err := stnrv2.NewAuthType(authType)
 	if err != nil {
 		return nil, &hErr{
 			fmt.Errorf("internal server error: %w", err),
@@ -203,7 +209,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 	}
 
 	switch atype {
-	case stnrv1.AuthTypePlainText:
+	case stnrv2.AuthTypePlainText:
 		u, userFound := auth.Credentials["username"]
 		p, passFound := auth.Credentials["password"]
 		if !userFound || !passFound {
@@ -216,7 +222,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		username = u
 		password = p
 
-	case stnrv1.AuthTypeLongTerm:
+	case stnrv2.AuthTypeLongTerm:
 		secret, secretFound := auth.Credentials["secret"]
 		if !secretFound {
 			return nil, &hErr{

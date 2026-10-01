@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/l7mp/stunner/v2"
-	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
 	a12n "github.com/l7mp/stunner/v2/pkg/authentication"
 	cdsclient "github.com/l7mp/stunner/v2/pkg/config/client"
 	cdsserver "github.com/l7mp/stunner/v2/pkg/config/server"
@@ -33,20 +33,20 @@ import (
 
 type turnAuthTestCase struct {
 	name          string
-	config        []*stnrv1.StunnerConfig
+	config        []*stnrv2.StunnerConfig
 	envPublicAddr string
 	params        string
 	status        int
 	tester        func(t *testing.T, turnAuth *types.TurnAuthenticationToken, authHandler a12n.AuthHandler)
 }
 
-func newTurnAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
+func newTurnAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 	if conf == nil {
 		return nil
 	}
 
-	authType, err := stnrv1.NewAuthType(conf.Auth.Type)
-	if err != nil || authType == stnrv1.AuthTypeNone {
+	authType, err := stnrv2.NewAuthType(conf.Auth.Type)
+	if err != nil || authType == stnrv2.AuthTypeNone {
 		return nil
 	}
 
@@ -54,7 +54,7 @@ func newTurnAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 
 	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
 		switch authType {
-		case stnrv1.AuthTypeStatic:
+		case stnrv2.AuthTypeStatic:
 			configuredUser := auth.Credentials["username"]
 			configuredPass := auth.Credentials["password"]
 			if ra.Username != configuredUser {
@@ -62,7 +62,7 @@ func newTurnAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 			}
 			key := a12n.GenerateAuthKey(configuredUser, auth.Realm, configuredPass)
 			return ra.Username, key, true
-		case stnrv1.AuthTypeEphemeral:
+		case stnrv2.AuthTypeEphemeral:
 			secret := auth.Credentials["secret"]
 			userID, err := a12n.CheckTimeWindowedUsername(ra.Username)
 			if err != nil {
@@ -83,14 +83,14 @@ func newTurnAuthHandler(conf *stnrv1.StunnerConfig) a12n.AuthHandler {
 var turnAuthTestCases = []turnAuthTestCase{
 	{
 		name:   "empty config",
-		config: []*stnrv1.StunnerConfig{},
+		config: []*stnrv2.StunnerConfig{},
 		params: "service=turn",
 		status: http.StatusInternalServerError,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -107,22 +107,22 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
-				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
+				stnrv2.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "static - dummy service",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=dummy",
 		status: http.StatusBadRequest,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - username set",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -140,15 +140,15 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
-				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
+				stnrv2.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "static -- ttl set",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -166,15 +166,15 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
-				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
+				stnrv2.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- basic",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -194,22 +194,22 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
-				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
+				stnrv2.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- dummy service",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=dummy",
 		status: 400,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "ephemeral -- username set",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -230,15 +230,15 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, key, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
 			assert.Equal(t, key, a12n.GenerateAuthKey(*turnAuthToken.Username,
-				stnrv1.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
+				stnrv2.DefaultRealm, *turnAuthToken.Password), "auth handler ok")
 		},
 	},
 	{
 		name:   "ephemeral -- username, ttl set",
-		config: []*stnrv1.StunnerConfig{&ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&ephemeralAuthConfig},
 		params: "service=turn&username=dummy&ttl=1",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -261,13 +261,13 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.2:3479?transport=udp", "DTLS URI")
 
-			_, _, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv1.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
+			_, _, ok := callAuthHandler(authHandler, *turnAuthToken.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.2"), Port: 1234})
 			assert.False(t, ok, "authHandler key ok")
 		},
 	},
 	{
 		name:   "static - multiple configs, no filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -304,7 +304,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	// gateway filters
 	{
 		name:   "static - single config, namespace filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -319,7 +319,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - single config, gateway filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -333,7 +333,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - single config, listener filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -346,14 +346,14 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - single config, restrictive filter, no result errs",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&listener=dummy&gateway=testgateway",
 		status: 404,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - multiple configs, namespace filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -374,7 +374,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, gateway filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -393,7 +393,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, listener filter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig, &ephemeralAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=udp",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -406,14 +406,14 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:   "static - multiple configs, restrictive filter, no result errs",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&namespace=testnamespace&gateway=testgateway&listener=dummy",
 		status: 404,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {},
 	},
 	{
 		name:   "static - public IP set via URL parameter",
-		config: []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		params: "service=turn&public-addr=1.3.5.7",
 		status: 200,
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
@@ -433,7 +433,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:          "static - public IP set via env var",
-		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config:        []*stnrv2.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
 		params:        "service=turn",
 		status:        200,
@@ -454,7 +454,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 	},
 	{
 		name:          "static - public IP set via URL parameter takes precedence over env var",
-		config:        []*stnrv1.StunnerConfig{&staticAuthConfig},
+		config:        []*stnrv2.StunnerConfig{&staticAuthConfig},
 		envPublicAddr: "2.4.6.8",
 		params:        "service=turn&public-addr=1.3.5.7",
 		status:        200,
@@ -567,7 +567,7 @@ func testTurnAuthCDS(t *testing.T, tests []turnAuthTestCase) {
 	loggerFactory := logger.NewLoggerFactory(authTestLoglevel)
 	log := loggerFactory.NewLogger("auth-test")
 
-	conf := make(chan *stnrv1.StunnerConfig, 10)
+	conf := make(chan *stnrv2.StunnerConfig, 10)
 	defer close(conf)
 
 	ctx, cancel := context.WithCancel(context.Background())

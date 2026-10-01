@@ -10,7 +10,7 @@ import (
 
 	"github.com/pion/logging"
 
-	stnrv1 "github.com/l7mp/stunner/v2/pkg/apis/v1"
+	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
 	cdsclient "github.com/l7mp/stunner/v2/pkg/config/client"
 )
 
@@ -22,11 +22,11 @@ type hErr struct {
 // Handler Implements server.ServerInterface
 type Handler struct {
 	store *sync.Map
-	conf  chan *stnrv1.StunnerConfig
+	conf  chan *stnrv2.StunnerConfig
 	log   logging.LeveledLogger
 }
 
-func NewHandler(conf chan *stnrv1.StunnerConfig, log logging.LeveledLogger) (*Handler, error) {
+func NewHandler(conf chan *stnrv2.StunnerConfig, log logging.LeveledLogger) (*Handler, error) {
 	return &Handler{
 		store: &sync.Map{},
 		conf:  conf,
@@ -60,16 +60,16 @@ func (h *Handler) Start(ctx context.Context) {
 }
 
 // config API
-func (h *Handler) SetConfig(id string, conf *stnrv1.StunnerConfig) {
+func (h *Handler) SetConfig(id string, conf *stnrv2.StunnerConfig) {
 	h.store.Store(id, conf)
 }
 
-func (h *Handler) GetConfig(id string) *stnrv1.StunnerConfig {
+func (h *Handler) GetConfig(id string) *stnrv2.StunnerConfig {
 	value, ok := h.store.Load(id)
 	if !ok {
 		return nil
 	}
-	c, ok := value.(*stnrv1.StunnerConfig)
+	c, ok := value.(*stnrv2.StunnerConfig)
 	if !ok {
 		return nil
 	}
@@ -87,7 +87,7 @@ func (h *Handler) DumpConfig() string {
 	num := 0
 
 	h.store.Range(func(key, value any) bool {
-		c, ok := value.(*stnrv1.StunnerConfig)
+		c, ok := value.(*stnrv2.StunnerConfig)
 		if !ok {
 			return false
 		}
