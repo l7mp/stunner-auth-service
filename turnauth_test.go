@@ -45,12 +45,12 @@ func newTurnAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 		return nil
 	}
 
-	authType, err := stnrv2.NewAuthType(conf.Auth.Type)
+	authType, err := stnrv2.NewAuthType(conf.Auths[0].Type)
 	if err != nil || authType == stnrv2.AuthTypeNone {
 		return nil
 	}
 
-	auth := conf.Auth
+	auth := conf.Auths[0]
 
 	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
 		switch authType {

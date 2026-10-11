@@ -46,12 +46,12 @@ func newICEAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 		return nil
 	}
 
-	authType, err := stnrv2.NewAuthType(conf.Auth.Type)
+	authType, err := stnrv2.NewAuthType(conf.Auths[0].Type)
 	if err != nil || authType == stnrv2.AuthTypeNone {
 		return nil
 	}
 
-	auth := conf.Auth
+	auth := conf.Auths[0]
 
 	return func(ra *turn.RequestAttributes) (string, []byte, bool) {
 		switch authType {
@@ -137,6 +137,28 @@ var iceAuthTestCases = []iceAuthTestCase{
 			uris := *iceServers[0].Urls
 			assert.Len(t, uris, 4, "URI len: only the TURN listeners")
 			assert.NotContains(t, uris, "turn:1.2.3.9:5000?transport=udp", "no URI for the plain listener")
+		},
+	},
+	{
+		name:   "static - the auth policy of a TURNRoute tunnel is never handed out",
+		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
+		patch: func(c *stnrv2.StunnerConfig) {
+			// a tunnel presents its own policy to the upstream TURN server: no TURN server
+			// names it, so no client gets its credentials
+			c.Auths = append(c.Auths, stnrv2.AuthConfig{Name: "testnamespace/upstream/turn",
+				Type: "static", Credentials: map[string]string{"username": "tunnel-user",
+					"password": "tunnel-pass"}})
+			c.Clusters = append(c.Clusters, stnrv2.ClusterConfig{Name: "testnamespace/upstream/turn",
+				Protocol: "UDP", Tunnel: &stnrv2.TunnelConfig{URL: "turn:turn.example.com:3478",
+					Auth: "testnamespace/upstream/turn"}})
+			c.Servers[0].Clusters = append(c.Servers[0].Clusters, "testnamespace/upstream/turn")
+		},
+		params: "service=turn",
+		status: 200,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
+			iceServers := *iceConfig.IceServers
+			assert.Len(t, iceServers, 1, "ICE servers len: only the policy of the TURN server")
+			assert.Equal(t, "user1", *iceServers[0].Username, "the TURN server's credentials")
 		},
 	},
 	{

@@ -50,13 +50,14 @@ var staticAuthConfig = stnrv2.StunnerConfig{
 		Name:     "testnamespace/stunnerd-static",
 		LogLevel: authTestLoglevel,
 	},
-	Auth: stnrv2.AuthConfig{
+	Auths: []stnrv2.AuthConfig{{
+		Name:  stnrv2.DefaultAuthName,
 		Type:  "static",
 		Realm: "",
 		Credentials: map[string]string{
 			"username": "user1",
 			"password": "pass1",
-		}},
+		}}},
 	Listeners: []stnrv2.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp",
@@ -97,8 +98,8 @@ var staticAuthConfig = stnrv2.StunnerConfig{
 		},
 	},
 	Servers: []stnrv2.ServerConfig{{
-		Name: "testnamespace/turn-static",
-		Type: stnrv2.ServerTypeTURN.String(),
+		ServerSpec: stnrv2.ServerSpec{Name: "testnamespace/turn-static", Type: stnrv2.ServerTypeTURN.String()},
+		TURN:       &stnrv2.TURNServerConfig{Auth: stnrv2.DefaultAuthName},
 	}},
 	Clusters: []stnrv2.ClusterConfig{},
 }
@@ -110,12 +111,13 @@ var ephemeralAuthConfig = stnrv2.StunnerConfig{
 		Name:     "testnamespace/stunnerd-ephemeral",
 		LogLevel: authTestLoglevel,
 	},
-	Auth: stnrv2.AuthConfig{
+	Auths: []stnrv2.AuthConfig{{
+		Name:  stnrv2.DefaultAuthName,
 		Type:  "ephemeral",
 		Realm: "",
 		Credentials: map[string]string{
 			"secret": "my-secret",
-		}},
+		}}},
 	Listeners: []stnrv2.ListenerConfig{
 		{
 			Name:       "testnamespace/testgateway/udp-2",
@@ -156,8 +158,8 @@ var ephemeralAuthConfig = stnrv2.StunnerConfig{
 		},
 	},
 	Servers: []stnrv2.ServerConfig{{
-		Name: "testnamespace/turn-ephemeral",
-		Type: stnrv2.ServerTypeTURN.String(),
+		ServerSpec: stnrv2.ServerSpec{Name: "testnamespace/turn-ephemeral", Type: stnrv2.ServerTypeTURN.String()},
+		TURN:       &stnrv2.TURNServerConfig{Auth: stnrv2.DefaultAuthName},
 	}},
 	Clusters: []stnrv2.ClusterConfig{},
 }

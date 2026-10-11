@@ -73,11 +73,7 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 			return true
 		}
 
-		if ice == nil {
-			return true
-		}
-
-		iceServers = append(iceServers, *ice)
+		iceServers = append(iceServers, ice...)
 		return true
 	})
 
@@ -97,11 +93,13 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 	return iceConfig, nil
 }
 
-func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv2.StunnerConfig) (*types.IceAuthenticationToken, *hErr) {
+// getIceServerConfForStunnerConf returns the ICE servers of a config: the URIs of its listeners
+// feeding a TURN server, one ICE server per authentication policy of those servers.
+func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv2.StunnerConfig) ([]types.IceAuthenticationToken, *hErr) {
 	h.log.Debugf("getIceServerConfForStunnerConf: considering Stunner config %s", stunnerConfig.String())
 
-	// should we generate an ICE server config for this stunner config?
-	uris := []string{}
+	// the URIs of the listeners, by the authentication policy of their TURN server
+	uris, auths := map[string][]string{}, []string{}
 	for _, l := range stunnerConfig.Listeners {
 		l := l
 		// format is namespace/gateway/listener
@@ -117,8 +115,8 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 			gateway, listener)
 
 		// only a listener feeding a TURN server has a TURN URI
-		if s, err := stunnerConfig.GetServerConfig(l.FirstServer()); err != nil ||
-			s.Type != stnrv2.ServerTypeTURN.String() {
+		s, err := stunnerConfig.GetServerConfig(l.FirstServer())
+		if err != nil || s.Type != stnrv2.ServerTypeTURN.String() {
 			h.log.Debugf("Ignoring listener %q: it feeds no TURN server", l.Name)
 			continue
 		}
@@ -170,15 +168,32 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 				h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
 				continue
 			}
-			uris = append(uris, u.String())
+			if _, ok := uris[s.TURN.Auth]; !ok {
+				auths = append(auths, s.TURN.Auth)
+			}
+			uris[s.TURN.Auth] = append(uris[s.TURN.Auth], u.String())
 		}
 	}
 
-	if len(uris) == 0 {
-		return nil, nil
+	ret := []types.IceAuthenticationToken{}
+	for _, name := range auths {
+		auth, err := stunnerConfig.GetAuthConfig(name)
+		if err != nil {
+			h.log.Errorf("Ignoring the listeners of authentication policy %q: %s", name,
+				err.Error())
+			continue
+		}
+		ice, herr := h.iceServer(params, auth, uris[name])
+		if herr != nil {
+			return nil, herr
+		}
+		ret = append(ret, ice)
 	}
+	return ret, nil
+}
 
-	auth := stunnerConfig.Auth
+// iceServer mints the credentials of an authentication policy for an ICE server of URIs.
+func (h *Handler) iceServer(params types.GetIceAuthParams, auth stnrv2.AuthConfig, uris []string) (types.IceAuthenticationToken, *hErr) {
 	userid := ""
 	if params.Username != nil {
 		userid = *params.Username
@@ -203,7 +218,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 	atype, err := stnrv2.NewAuthType(authType)
 	if err != nil {
-		return nil, &hErr{
+		return types.IceAuthenticationToken{}, &hErr{
 			fmt.Errorf("internal server error: %w", err),
 			http.StatusInternalServerError}
 	}
@@ -213,7 +228,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 		u, userFound := auth.Credentials["username"]
 		p, passFound := auth.Credentials["password"]
 		if !userFound || !passFound {
-			return nil, &hErr{
+			return types.IceAuthenticationToken{}, &hErr{
 				errors.New("invalid STUNner config: no username or password " +
 					"(auth: plaintext)"),
 				http.StatusInternalServerError,
@@ -225,7 +240,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 	case stnrv2.AuthTypeLongTerm:
 		secret, secretFound := auth.Credentials["secret"]
 		if !secretFound {
-			return nil, &hErr{
+			return types.IceAuthenticationToken{}, &hErr{
 				errors.New("invalid STUNner config: no shared secret (auth: longterm)"),
 				http.StatusInternalServerError}
 		}
@@ -233,7 +248,7 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		p, err := a12n.GetLongTermCredential(username, secret)
 		if err != nil {
-			return nil, &hErr{
+			return types.IceAuthenticationToken{}, &hErr{
 				fmt.Errorf("cannot generate longterm credential: %w", err),
 				http.StatusInternalServerError}
 		}
@@ -248,5 +263,5 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 	h.log.Debugf("getIceServerConfForStunnerConf: response: %s", iceAuth.String())
 
-	return &iceAuth, nil
+	return iceAuth, nil
 }
