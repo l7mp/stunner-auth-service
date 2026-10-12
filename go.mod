@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/gorilla/mux v1.8.1
-	github.com/l7mp/stunner/v2 v2.0.0-20261011210621-15cea6c5b642
+	github.com/l7mp/stunner/v2 v2.0.0-20261011230610-39bd7c177c11
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/pion/logging v0.2.5-0.20260405224506-902883ec686b
