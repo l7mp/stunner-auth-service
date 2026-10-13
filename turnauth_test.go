@@ -68,7 +68,7 @@ func newTurnAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 			if err != nil {
 				return "", nil, false
 			}
-			password, err := a12n.GetLongTermCredential(ra.Username, secret)
+			password, err := stnrv2.GetLongTermCredential(ra.Username, secret)
 			if err != nil {
 				return "", nil, false
 			}
@@ -180,10 +180,10 @@ var turnAuthTestCases = []turnAuthTestCase{
 		tester: func(t *testing.T, turnAuthToken *types.TurnAuthenticationToken, authHandler a12n.AuthHandler) {
 			assert.NotNil(t, turnAuthToken, "TURN auth token nil")
 			assert.NotNil(t, turnAuthToken.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
+			assert.Regexp(t, regexp.MustCompile(`^\d+:anonymous$`), *turnAuthToken.Username, "username ok")
 			assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username valid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
 			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
@@ -219,7 +219,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
 			assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username valid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
 			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
@@ -250,7 +250,7 @@ var turnAuthTestCases = []turnAuthTestCase{
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *turnAuthToken.Username, "username ok")
 			assert.Error(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
 			assert.NotNil(t, turnAuthToken.Password, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
 			assert.NotNil(t, turnAuthToken.Uris, "URLs nil")
@@ -287,9 +287,9 @@ var turnAuthTestCases = []turnAuthTestCase{
 				assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 
 			} else {
-				assert.Regexp(t, regexp.MustCompile(`^\d+:`), *turnAuthToken.Username, "username ok")
+				assert.Regexp(t, regexp.MustCompile(`^\d+:anonymous$`), *turnAuthToken.Username, "username ok")
 				assert.NoError(t, checkTimeWindowedUsername(*turnAuthToken.Username), "username invalid")
-				passwd, err := a12n.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
+				passwd, err := stnrv2.GetLongTermCredential(*turnAuthToken.Username, "my-secret")
 				assert.NoError(t, err, "GetLongTermCredential")
 				assert.Equal(t, passwd, *turnAuthToken.Password, "credential ok")
 

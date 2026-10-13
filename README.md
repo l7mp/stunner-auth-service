@@ -210,6 +210,7 @@ order of priority (from highest to lowest):
 
 If multiple methods are used, the one with the highest priority will override the rest
 (e.g., setting the `public-addr` parameter always takes precedence).
+A listener with no public address from any of these sources gets no ICE URI.
 
 ## API
 

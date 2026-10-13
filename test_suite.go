@@ -78,7 +78,7 @@ var staticAuthConfig = stnrv2.StunnerConfig{
 		}, {
 			Name:       "testnamespace/dummygateway/tls",
 			Protocol:   "TLS",
-			PublicAddr: "",
+			PublicAddr: "127.0.0.1",
 			PublicPort: 0,
 			Addr:       "127.0.0.1",
 			Port:       3479,
@@ -88,7 +88,7 @@ var staticAuthConfig = stnrv2.StunnerConfig{
 		}, {
 			Name:       "testnamespace/testgateway/dtls",
 			Protocol:   "DTLS",
-			PublicAddr: "",
+			PublicAddr: "127.0.0.1",
 			PublicPort: 0,
 			Addr:       "127.0.0.1",
 			Port:       3479,
@@ -138,7 +138,7 @@ var ephemeralAuthConfig = stnrv2.StunnerConfig{
 		}, {
 			Name:       "testnamespace/dummygateway/tls-2",
 			Protocol:   "TLS",
-			PublicAddr: "",
+			PublicAddr: "127.0.0.2",
 			PublicPort: 0,
 			Addr:       "127.0.0.2",
 			Port:       3479,
@@ -148,7 +148,7 @@ var ephemeralAuthConfig = stnrv2.StunnerConfig{
 		}, {
 			Name:       "testnamespace/testgateway/dtls-2",
 			Protocol:   "DTLS",
-			PublicAddr: "",
+			PublicAddr: "127.0.0.2",
 			PublicPort: 0,
 			Addr:       "127.0.0.2",
 			Port:       3479,

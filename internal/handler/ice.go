@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
 	stnrv2 "github.com/l7mp/stunner/v2/pkg/apis/v2"
-	a12n "github.com/l7mp/stunner/v2/pkg/authentication"
 
 	"github.com/l7mp/stunner-auth-service/internal/config"
 	"github.com/l7mp/stunner-auth-service/pkg/types"
@@ -57,6 +57,17 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 			http.StatusBadRequest}
 	}
 
+	userid := ""
+	if params.Username != nil {
+		userid = *params.Username
+	}
+	ttl := config.DefaultTimeout
+	if params.Ttl != nil {
+		ttl = time.Duration(int(*params.Ttl)) * time.Second
+	}
+	// one expiry for the whole request, so that every URI of a policy carries the same credentials
+	expiry := time.Now().Add(ttl)
+
 	iceServers := []types.IceAuthenticationToken{}
 
 	// try to generate an iceconfig for each config in the store
@@ -66,14 +77,8 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 			return false
 		}
 
-		ice, err := h.getIceServerConfForStunnerConf(params, c)
-		if err != nil {
-			h.log.Errorf("Cannot generate ICE server config for Stunner config: %s",
-				err.Error())
-			return true
-		}
-
-		iceServers = append(iceServers, ice...)
+		iceServers = append(iceServers, h.getIceServerConfForStunnerConf(params, c, userid,
+			expiry)...)
 		return true
 	})
 
@@ -93,15 +98,30 @@ func (h *Handler) getIceServerConf(params types.GetIceAuthParams) (types.IceConf
 	return iceConfig, nil
 }
 
-// getIceServerConfForStunnerConf returns the ICE servers of a config: the URIs of its listeners
-// feeding a TURN server, one ICE server per authentication policy of those servers.
-func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv2.StunnerConfig) ([]types.IceAuthenticationToken, *hErr) {
+// getIceServerConfForStunnerConf returns the ICE servers of a config: the TURN URIs of its
+// listeners, one ICE server per credentials.
+func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, stunnerConfig *stnrv2.StunnerConfig, userid string, expiry time.Time) []types.IceAuthenticationToken {
 	h.log.Debugf("getIceServerConfForStunnerConf: considering Stunner config %s", stunnerConfig.String())
 
-	// the URIs of the listeners, by the authentication policy of their TURN server
-	uris, auths := map[string][]string{}, []string{}
+	// a public address from the request, or else from the environment, overrides the ones of
+	// the listeners
+	addr := config.PublicAddr
+	if params.PublicAddr != nil {
+		addr = *params.PublicAddr
+	}
+	if addr != "" {
+		c := *stunnerConfig
+		c.Listeners = slices.Clone(c.Listeners)
+		for i := range c.Listeners {
+			c.Listeners[i].PublicAddr, c.Listeners[i].PublicAddrs = addr, nil
+		}
+		stunnerConfig = &c
+	}
+
+	// the URIs of the listeners, by their credentials
+	type credentials struct{ username, password string }
+	uris, creds := map[credentials][]string{}, []credentials{}
 	for _, l := range stunnerConfig.Listeners {
-		l := l
 		// format is namespace/gateway/listener
 		tokens := strings.Split(l.Name, "/")
 		if len(tokens) != 3 {
@@ -113,29 +133,6 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 
 		h.log.Debugf("Considering Listener: namespace: %s, gateway: %s, listener: %s", namespace,
 			gateway, listener)
-
-		// only a listener feeding a TURN server has a TURN URI
-		s, err := stunnerConfig.GetServerConfig(l.FirstServer())
-		if err != nil || s.Type != stnrv2.ServerTypeTURN.String() {
-			h.log.Debugf("Ignoring listener %q: it feeds no TURN server", l.Name)
-			continue
-		}
-
-		// Determine the public addresses to advertise for this listener, in precedence order:
-		// request param > env override > listener public_addresses > listener public_address. An
-		// empty result lets NewURIFromListener fall back to the listener address.
-		pubAddrs := l.PublicAddrs
-		if len(pubAddrs) == 0 {
-			pubAddrs = []string{l.PublicAddr}
-		}
-		switch {
-		case params.PublicAddr != nil:
-			pubAddrs = []string{*params.PublicAddr}
-			h.log.Debugf("Using public address from request: %s", *params.PublicAddr)
-		case config.PublicAddr != "":
-			pubAddrs = []string{config.PublicAddr}
-			h.log.Debugf("Using public address from environment: %s", config.PublicAddr)
-		}
 
 		// filter
 		if params.Namespace != nil && *params.Namespace != namespace {
@@ -160,108 +157,27 @@ func (h *Handler) getIceServerConfForStunnerConf(params types.GetIceAuthParams, 
 			continue
 		}
 
-		for _, addr := range pubAddrs {
-			lc := l
-			lc.PublicAddr = addr
-			u, err := stnrv2.NewURIFromListener(&lc)
-			if err != nil {
-				h.log.Errorf("Cannot generate URI for listener: %s", err.Error())
-				continue
+		lus, err := stunnerConfig.GetTURNURIForListener(l.Name, userid, expiry)
+		if err != nil {
+			h.log.Infof("Ignoring listener %q: %s", l.Name, err.Error())
+			continue
+		}
+		for _, u := range lus {
+			c := credentials{u.Username, u.Password}
+			if _, ok := uris[c]; !ok {
+				creds = append(creds, c)
 			}
-			if _, ok := uris[s.TURN.Auth]; !ok {
-				auths = append(auths, s.TURN.Auth)
-			}
-			uris[s.TURN.Auth] = append(uris[s.TURN.Auth], u.String())
+			uris[c] = append(uris[c], u.String())
 		}
 	}
 
 	ret := []types.IceAuthenticationToken{}
-	for _, name := range auths {
-		auth, err := stunnerConfig.GetAuthConfig(name)
-		if err != nil {
-			h.log.Errorf("Ignoring the listeners of authentication policy %q: %s", name,
-				err.Error())
-			continue
-		}
-		ice, herr := h.iceServer(params, auth, uris[name])
-		if herr != nil {
-			return nil, herr
-		}
+	for _, c := range creds {
+		us := uris[c]
+		ice := types.IceAuthenticationToken{Username: &c.username, Credential: &c.password,
+			Urls: &us}
+		h.log.Debugf("getIceServerConfForStunnerConf: ICE server: %s", ice.String())
 		ret = append(ret, ice)
 	}
-	return ret, nil
-}
-
-// iceServer mints the credentials of an authentication policy for an ICE server of URIs.
-func (h *Handler) iceServer(params types.GetIceAuthParams, auth stnrv2.AuthConfig, uris []string) (types.IceAuthenticationToken, *hErr) {
-	userid := ""
-	if params.Username != nil {
-		userid = *params.Username
-	}
-
-	ttl := config.DefaultTimeout
-	if params.Ttl != nil {
-		ttl = time.Duration(int(*params.Ttl)) * time.Second
-	}
-
-	username, password := "", ""
-	authType := auth.Type
-
-	// aliases
-	switch authType {
-	// plaintext
-	case "static", "plaintext":
-		authType = "plaintext"
-	case "ephemeral", "timewindowed", "longterm":
-		authType = "longterm"
-	}
-
-	atype, err := stnrv2.NewAuthType(authType)
-	if err != nil {
-		return types.IceAuthenticationToken{}, &hErr{
-			fmt.Errorf("internal server error: %w", err),
-			http.StatusInternalServerError}
-	}
-
-	switch atype {
-	case stnrv2.AuthTypePlainText:
-		u, userFound := auth.Credentials["username"]
-		p, passFound := auth.Credentials["password"]
-		if !userFound || !passFound {
-			return types.IceAuthenticationToken{}, &hErr{
-				errors.New("invalid STUNner config: no username or password " +
-					"(auth: plaintext)"),
-				http.StatusInternalServerError,
-			}
-		}
-		username = u
-		password = p
-
-	case stnrv2.AuthTypeLongTerm:
-		secret, secretFound := auth.Credentials["secret"]
-		if !secretFound {
-			return types.IceAuthenticationToken{}, &hErr{
-				errors.New("invalid STUNner config: no shared secret (auth: longterm)"),
-				http.StatusInternalServerError}
-		}
-		username = a12n.GenerateTimeWindowedUsername(time.Now(), ttl, userid)
-
-		p, err := a12n.GetLongTermCredential(username, secret)
-		if err != nil {
-			return types.IceAuthenticationToken{}, &hErr{
-				fmt.Errorf("cannot generate longterm credential: %w", err),
-				http.StatusInternalServerError}
-		}
-		password = p
-	}
-
-	iceAuth := types.IceAuthenticationToken{
-		Username:   &username,
-		Credential: &password,
-		Urls:       &uris,
-	}
-
-	h.log.Debugf("getIceServerConfForStunnerConf: response: %s", iceAuth.String())
-
-	return iceAuth, nil
+	return ret
 }

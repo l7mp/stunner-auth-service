@@ -69,7 +69,7 @@ func newICEAuthHandler(conf *stnrv2.StunnerConfig) a12n.AuthHandler {
 			if err != nil {
 				return "", nil, false
 			}
-			password, err := a12n.GetLongTermCredential(ra.Username, secret)
+			password, err := stnrv2.GetLongTermCredential(ra.Username, secret)
 			if err != nil {
 				return "", nil, false
 			}
@@ -244,10 +244,10 @@ var iceAuthTestCases = []iceAuthTestCase{
 			iceAuth := iceServers[0]
 			assert.NotNil(t, iceAuth, "ICE auth token nil")
 			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Regexp(t, regexp.MustCompile(`^\d+:`), *iceAuth.Username, "username ok")
+			assert.Regexp(t, regexp.MustCompile(`^\d+:anonymous$`), *iceAuth.Username, "username ok")
 			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
@@ -287,7 +287,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
 			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
@@ -323,7 +323,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
 			assert.Error(t, checkTimeWindowedUsername(*iceAuth.Username), "username invalid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
@@ -377,7 +377,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Regexp(t, regexp.MustCompile(`^\d+:dummy`), *iceAuth.Username, "username ok")
 			assert.NoError(t, checkTimeWindowedUsername(*iceAuth.Username), "username valid")
 			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			passwd, err := a12n.GetLongTermCredential(*iceAuth.Username, "my-secret")
+			passwd, err := stnrv2.GetLongTermCredential(*iceAuth.Username, "my-secret")
 			assert.NoError(t, err, "GetLongTermCredential")
 			assert.Equal(t, passwd, *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
@@ -660,7 +660,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 		},
 	},
 	{
-		name:   "static - no public IP",
+		name:   "static - a listener without a public address has no URI",
 		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners[0].PublicAddr = ""
@@ -674,50 +674,24 @@ var iceAuthTestCases = []iceAuthTestCase{
 			iceServers := *iceConfig.IceServers
 			assert.Len(t, iceServers, 1, "ICE servers len")
 			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
 			uris := *iceAuth.Urls
-			assert.Len(t, uris, 4, "URI len")
-			assert.Contains(t, uris, "turn:127.0.0.1:3478?transport=udp", "UDP URI")
-			assert.Contains(t, uris, "turn:127.0.0.1:3478?transport=tcp", "TCP URI")
+			assert.Len(t, uris, 2, "URI len: the listen address is no fallback")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
 			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
 		},
 	},
 	{
-		name:   "static - no IP",
+		name:   "static - no public address at all",
 		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		patch: func(c *stnrv2.StunnerConfig) {
-			c.Listeners[0].PublicAddr = ""
-			c.Listeners[0].Addr = ""
-			c.Listeners[1].PublicAddr = ""
-			c.Listeners[1].Addr = ""
+			for i := range c.Listeners {
+				c.Listeners[i].PublicAddr = ""
+			}
 		},
 		params: "service=turn",
-		status: 200,
-		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {
-			assert.NotNil(t, iceConfig, "ICE config nil")
-			assert.NotNil(t, iceConfig.IceServers, "ICE servers nil")
-			iceServers := *iceConfig.IceServers
-			assert.Len(t, iceServers, 1, "ICE servers len")
-			iceAuth := iceServers[0]
-			assert.NotNil(t, iceAuth, "ICE auth token nil")
-			assert.NotNil(t, iceAuth.Username, "username nil")
-			assert.Equal(t, "user1", *iceAuth.Username, "username nil")
-			assert.NotNil(t, iceAuth.Credential, "credential nil")
-			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
-			assert.NotNil(t, iceAuth.Urls, "URLs nil")
-			uris := *iceAuth.Urls
-			assert.Len(t, uris, 4, "URI len")
-			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=udp", "UDP URI")
-			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=tcp", "TCP URI")
-			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=tcp", "TLS URI")
-			assert.Contains(t, uris, "turns:127.0.0.1:3479?transport=udp", "DTLS URI")
-		},
+		status: 404,
+		tester: func(t *testing.T, iceConfig *types.IceConfig, authHandler a12n.AuthHandler) {},
 	},
 	// relay-address-discovery
 	{
@@ -747,11 +721,9 @@ var iceAuthTestCases = []iceAuthTestCase{
 			assert.Equal(t, "pass1", *iceAuth.Credential, "credential ok")
 			assert.NotNil(t, iceAuth.Urls, "URLs nil")
 			uris := *iceAuth.Urls
-			assert.Len(t, uris, 4, "URI len")
-			assert.Contains(t, uris, "turn:0.0.0.0:3478?transport=udp", "UDP URI")
+			assert.Len(t, uris, 2, "URI len: no URI without a public address")
 			assert.Contains(t, uris, "turn:dummy.example.io:3478?transport=tcp", "TCP URI")
 			assert.Contains(t, uris, "turns:5.4.3.2:3479?transport=tcp", "TLS URI")
-			assert.Contains(t, uris, "turns:dummy.example.io:3479?transport=udp", "DTLS URI")
 
 			_, key, ok := callAuthHandler(authHandler, *iceAuth.Username, stnrv2.DefaultRealm, &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 1234})
 			assert.True(t, ok, "authHandler key ok")
