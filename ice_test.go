@@ -124,7 +124,7 @@ var iceAuthTestCases = []iceAuthTestCase{
 		config: []*stnrv2.StunnerConfig{&staticAuthConfig},
 		patch: func(c *stnrv2.StunnerConfig) {
 			c.Listeners = append(c.Listeners, stnrv2.ListenerConfig{
-				Name: "testnamespace/testgateway/plain", Protocol: "UDP", PublicAddr: "1.2.3.9",
+				Name: "testnamespace/testgateway/plain", Protocol: "UDP", Port: 5000, PublicAddr: "1.2.3.9",
 				PublicPort: 5000, Servers: []string{"testnamespace/l4"}})
 			c.Servers = append(c.Servers, stnrv2.ServerConfig{Name: "testnamespace/l4",
 				Type: stnrv2.ServerTypeL4.String()})
