@@ -49,6 +49,14 @@ func (h *Handler) Start(ctx context.Context) {
 				if cdsclient.IsConfigDeleted(c) {
 					h.log.Debugf("Config deleted for gateway %q", c.Admin.Name)
 					h.store.Delete(c.Admin.Name)
+					continue
+				}
+
+				// an invalid update leaves the last valid config of the gateway in place
+				if err := c.Validate(); err != nil {
+					h.log.Errorf("Skipping invalid config for gateway %q: %s", c.Admin.Name,
+						err.Error())
+					continue
 				}
 
 				h.log.Debugf("New config available for gateway %q: %s",
