@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.4.4
 	github.com/go-logr/zapr v1.3.0
 	github.com/gorilla/mux v1.8.1
-	github.com/l7mp/stunner/v2 v2.0.0-20261025133904-031aecccaa46
+	github.com/l7mp/stunner/v2 v2.0.0-20261026120128-6eab238c42cc
 	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0
 	github.com/oapi-codegen/runtime v1.7.0
 	github.com/pion/logging v0.2.5-0.20260405224506-902883ec686b
@@ -73,7 +73,7 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/sdp/v3 v3.0.20 // indirect
 	github.com/pion/stun/v4 v4.0.1 // indirect
-	github.com/pion/transport/v5 v5.1.1 // indirect
+	github.com/pion/transport/v5 v5.1.2 // indirect
 	github.com/prometheus/client_golang v1.25.0 // indirect
 	github.com/prometheus/client_model v0.6.3 // indirect
 	github.com/prometheus/common v0.72.0 // indirect
@@ -127,4 +127,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/pion/turn/v5 => github.com/l7mp/turn/v5 v5.0.0-20261001150446-f39c25679b40
+replace github.com/pion/turn/v5 => github.com/l7mp/turn/v5 v5.0.0-20261026113225-13cc48a811cc
